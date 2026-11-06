@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "Cite Burst Surveyor and FitBurst."
+title: "Burst Surveyor"
+repository-code: "https://github.com/ImmortalAri/burst-surveyor"
+date-released: "2026-11-06"
+type: software
+authors:
+  - name: "Burst Surveyor contributors"
+license: MIT
+keywords:
+  - fast radio bursts
+  - dynamic spectra
+  - FitBurst
+references:
+  - type: software
+    title: "FitBurst"
+    authors:
+      - name: "CHIME/FRB Collaboration"
+    repository-code: "https://github.com/CHIMEFRB/fitburst"

@@ -1,0 +1,27 @@
+{
+  "kind": "deterministic synthetic installation check",
+  "source_sha256": "4523ab57d51b36404b338bb7875c7a2eae43a09319d57a39652919de1788e0df",
+  "input": "two-pulse.npz",
+  "shape": [
+    64,
+    144
+  ],
+  "parameters": {
+    "injected_time_bins": [
+      49,
+      73
+    ],
+    "injected_width_bins": [
+      2.7,
+      3.4
+    ]
+  },
+  "observed": {
+    "status": "provisional",
+    "components": 2,
+    "scatter": false,
+    "common_gain": 7085.713834644648,
+    "rms_gain": 3409.078826365762
+  },
+  "score_relative_tolerance": 1e-05
+}

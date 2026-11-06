@@ -1,0 +1,27 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "title":"Burst Surveyor sealed batch summary",
+  "type":"object",
+  "required":["schema_version","inputs","exported","statuses","events"],
+  "properties":{
+    "schema_version":{"const":1},
+    "inputs":{"type":"integer","minimum":1},
+    "exported":{"type":"integer","minimum":0},
+    "statuses":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},
+    "events":{"type":"array","items":{
+      "type":"object",
+      "required":["id","input_name","source_sha256","status","reasons","components","scatter","gain","rms_gain","residual_peak","primary_seconds","export_seconds","primary_receipt","native_receipt","prediction"],
+      "properties":{
+        "id":{"type":"string","pattern":"^[a-f0-9]{24}$"},
+        "source_sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},
+        "input_name":{"type":"string"},
+        "status":{"enum":["provisional","unresolved","unsupported","refused","failed","deferred"]},
+        "reasons":{"type":"array","items":{"type":"string"}},
+        "components":{"type":["integer","null"]},"scatter":{"type":["boolean","null"]},
+        "gain":{"type":["number","null"]},"rms_gain":{"type":["number","null"]},"residual_peak":{"type":["number","null"]},
+        "primary_seconds":{"type":"number","minimum":0},"export_seconds":{"type":"number","minimum":0},
+        "primary_receipt":{"type":"string"},"native_receipt":{"type":"string"},"prediction":{"type":["string","null"]}
+      }
+    }}
+  }
+}
