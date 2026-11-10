@@ -88,6 +88,11 @@ class AssistantTests(unittest.TestCase):
         )
         next_packet = assistant.decide(d, self.raw, request)["decisions"][0]
         self.assertEqual(next_packet["challenge_result"], "provisional_challenger")
+        from burstsurveyor.triage import verify_queue
+        self.assertTrue(verify_queue(d / "review", d / "fit")["verified"])
+        selected = next(r for r in read(d / "review/queue.json")["events"] if r["id"] == next_packet["id"])
+        self.assertEqual(selected["packet_sha256"], next_packet["packet_sha256"])
+        self.assertEqual(selected["stage"], "followup")
         self.assertNotEqual(next_packet["packet_sha256"], request["packet_sha256"])
         with self.assertRaisesRegex(ValueError, "different event or review packet"):
             assistant.decide(
@@ -193,6 +198,35 @@ class AssistantTests(unittest.TestCase):
             entries["two.npz"]["packet_sha256"], revised["two.npz"]["packet_sha256"]
         )
         self.assertTrue((d / revised["two.npz"]["figure"]).is_file())
+
+    def test_audit_resumes_missing_inspection_and_preserves_fit(self):
+        from burstsurveyor.triage import audit, verify_queue
+        d, _ = self.clone()
+        out = self.root / "audit-output"
+        before = sha256(d / "fit/seal.json")
+        with patch("burstsurveyor.review.load_for_review", side_effect=MemoryError("Unavailable")):
+            audit(d / "fit", self.raw, out)
+        self.assertTrue(all(r["triage"]["priority"] == 0 for r in read(out / "queue.json")["events"]))
+        result = audit(d / "fit", self.raw, out, resume=True)
+        self.assertTrue(result["verification"]["verified"])
+        self.assertEqual(before, sha256(d / "fit/seal.json"))
+        rows = read(out / "queue.json")["events"]
+        self.assertEqual(sum(r["inspection_status"] == "figure_ready" for r in rows), 2)
+        selected = next(r for r in rows if r["figure"])
+        self.assertIn("/inspection/", selected["packet"])
+        figure = out / selected["figure"]
+        figure.write_bytes(figure.read_bytes() + b"changed")
+        with self.assertRaisesRegex(ValueError, "Changed triage figure"):
+            verify_queue(out, d / "fit")
+
+    def test_combined_prepare_produces_queue_and_records_mode(self):
+        d = self.root / "combined-workspace"
+        assistant.prepare(self.raw / "two.npz", d, workers=1, mode="combined")
+        self.assertEqual(read(d / "session.json")["mode"], "combined")
+        queue = read(d / "review/queue.json")
+        self.assertEqual(queue["inputs"], 1)
+        self.assertEqual(queue["events"][0]["input_name"], "two.npz")
+        self.assertFalse(list((d / "review").rglob("challenge.json")))
 
 
 if __name__ == "__main__":

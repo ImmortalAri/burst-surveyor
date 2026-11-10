@@ -45,7 +45,7 @@ def _files(inputs):
     return by_id
 
 
-def _method():
+def _method(mode="bounded"):
     from ._upstream import verified_sources
 
     here = Path(__file__).resolve().parent
@@ -74,7 +74,7 @@ def _method():
         "sources": {p.relative_to(here).as_posix(): sha256(p) for p in sorted(sources)},
         "fitburst_sources": verified_sources(),
         "policy": {
-            "mode": "bounded",
+            "mode": mode,
             "reserve_mib": RESERVE_MIB,
             "threads_per_worker": 1,
         },
@@ -128,7 +128,8 @@ def _run_task(task):
     from threadpoolctl import threadpool_limits
     from .science import InputError, export_event, fit_event
 
-    stage, raw, output, primary, event, primary_hash = task
+    stage, raw, output, primary, event, primary_hash, *options = task
+    mode = options[0] if options else 'bounded'
     started = time.monotonic()
     incumbent = None
     if stage == "native":
@@ -141,7 +142,7 @@ def _run_task(task):
     with tempfile.TemporaryDirectory(dir=output) as tmp, threadpool_limits(limits=1):
         try:
             if stage == "primary":
-                result = fit_event(raw, Path(tmp))
+                result = fit_event(raw, Path(tmp), mode=mode)
             else:
                 result = export_event(
                     raw, incumbent, output / (event["id"] + ".npz"), Path(tmp)
@@ -310,6 +311,7 @@ def _run_stage(directory, paths, manifest, stage, workers, primary):
                 primary_path,
                 event,
                 primary.get(event["id"]),
+                manifest['method']['policy']['mode'],
             )
 
         def progress(status, **extra):
@@ -380,7 +382,7 @@ def _run_stage(directory, paths, manifest, stage, workers, primary):
                 defer=defer if manifest.get("defer_memory") else None,
             )
             _require(
-                _method() == manifest["method"],
+                _method(manifest['method']['policy']['mode']) == manifest["method"],
                 "Scientific source or numerical environment changed during fitting",
             )
             _require(len(hashes) == len(manifest["events"]), "Stage has missing events")
@@ -461,7 +463,7 @@ def _summary(directory, manifest):
     }
 
 
-def fit(inputs, output, *, workers=3, resume=False, defer_memory=False):
+def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bounded"):
     """Fit one NPZ or an NPZ directory; return the sealed, JSON-serializable result summary.
 
     Completed event receipts survive interruption. Resume using the same input roster,
@@ -475,6 +477,8 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False):
         raise ValueError(f"workers must be an integer between 1 and {MAX_WORKERS}")
     if type(defer_memory) is not bool:
         raise ValueError("defer_memory must be a boolean")
+    if mode not in {'bounded', 'scintillation', 'combined'}:
+        raise ValueError('mode must be bounded, scintillation or combined')
     paths, directory = _files(inputs), Path(output).resolve()
     if not resume:
         if directory.exists():
@@ -486,7 +490,7 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False):
         manifest = {
             "schema_version": SCHEMA,
             "created_utc": utc(),
-            "method": _method(),
+            "method": _method(mode),
             "workers": workers,
             "defer_memory": defer_memory,
             "events": _inventory(paths),
@@ -505,10 +509,11 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False):
                 manifest.get("defer_memory", False) == defer_memory,
                 "Resume with the original memory policy",
             )
+            _require(manifest['method']['policy']['mode'] == mode, 'Resume with the original fitting mode')
             if (directory / "seal.json").exists():
                 return verify(directory)
             _require(
-                _method() == manifest["method"],
+                _method(mode) == manifest["method"],
                 "Resume requires the original scientific source and environment",
             )
         else:

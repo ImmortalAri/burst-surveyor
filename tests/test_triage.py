@@ -1,0 +1,134 @@
+"""Review prioritization must warn without changing numerical exports."""
+import copy
+from pathlib import Path
+import tempfile
+from types import SimpleNamespace
+import unittest
+
+import numpy as np
+
+from burstsurveyor.component_review import component_review
+from burstsurveyor.triage import assess, publish, ranked, temporal_screen
+from burstsurveyor._storage import read, sha256
+
+
+def packet(name="example", **diagnostic):
+    return dict(id=name, status="provisional", reasons=[], flags=[],
+                selected=dict(prediction="saved.npz", components=2),
+                inspection_status="figure_ready", figure=None,
+                diagnostics=dict(flags=[], **diagnostic))
+
+
+def data_for_screen(extra=False, amplitude=False, negative=False):
+    rng = np.random.default_rng(418)
+    nf, nt = 64, 256
+    t = np.arange(nt)
+    model = np.broadcast_to(5*np.exp(-.5*((t-100)/5)**2), (nf, nt)).copy()
+    raw = model + rng.normal(size=(nf, nt))
+    if extra:
+        raw[:32] += 1.0*np.exp(-.5*((t-180)/3)**2)
+    if amplitude:
+        raw = (np.linspace(.3, 3, nf)[:, None] * model) + rng.normal(size=(nf, nt))
+    if negative:
+        raw -= 2*np.exp(-.5*((t-102)/1.5)**2)
+    e = SimpleNamespace(raw=raw, length=nt, frequency=np.linspace(800, 400, nf),
+                        coords=SimpleNamespace(dt=.001),
+                        tiles=lambda ids: (ids[i:i+8] for i in range(0, len(ids), 8)))
+    data = SimpleNamespace(e=e, indices=np.arange(nf), base=np.zeros(nf), var=np.ones(nf), rho_freq=0.)
+    return data, model
+
+
+class TriageTests(unittest.TestCase):
+    def test_unavailable_cannot_be_classified_clean(self):
+        r = packet()
+        r["inspection_status"] = "resource_limited"
+        self.assertEqual(assess(r)["disposition"], "unavailable")
+        self.assertTrue(assess(r)["requires_review"])
+
+    def test_rank_missing_model_then_temporal_then_spectral_then_routine(self):
+        clean, spectral, temporal, unavailable = [packet(n) for n in ("clean", "spectral", "temporal", "unavailable")]
+        spectral["diagnostics"]["flags"] = ["frequency_amplitude_structure"]
+        temporal["diagnostics"]["flags"] = ["positive_residual_island"]
+        unavailable["selected"]["prediction"] = None
+        rows = ranked([clean, spectral, temporal, unavailable])
+        self.assertEqual([r["id"] for r in rows], ["unavailable", "temporal", "spectral", "clean"])
+
+    def test_component_count_is_not_a_warning_by_itself(self):
+        r = packet()
+        r["selected"]["components"] = 7
+        self.assertEqual(assess(r)["priority"], 5)
+
+    def test_separate_faint_pulse_is_reviewed_without_modifying_pixels(self):
+        data, model = data_for_screen(extra=True)
+        before = model.copy()
+        screen = temporal_screen(data, model)
+        self.assertTrue(any(w["sign"] == "positive" and w["time_bins"][0] <= 180 < w["time_bins"][1] for w in screen["windows"]))
+        self.assertTrue(all(w["frequency_mhz"][0] <= w["frequency_mhz"][1] for w in screen["windows"]))
+        np.testing.assert_array_equal(model, before)
+        self.assertTrue(any(w.get("location") == "outside_fitted_emission" for w in screen["windows"]))
+        r = packet(temporal_screen=screen)
+        self.assertEqual(assess(r)["priority"], 2)
+        self.assertNotIn("temporal_proposal", screen)
+
+    def test_spectral_amplitude_alone_does_not_request_a_pulse(self):
+        data, model = data_for_screen(amplitude=True)
+        self.assertEqual(temporal_screen(data, model)["windows"], [])
+
+    def test_negative_trough_is_not_an_add_component_proposal(self):
+        data, model = data_for_screen(negative=True)
+        screen = temporal_screen(data, model)
+        self.assertTrue(any(w["sign"] == "negative" for w in screen["windows"]))
+        r = packet(temporal_screen=screen)
+        self.assertIn("replicated_negative_residual", [r["code"] for r in assess(r)["reasons"]])
+
+    def test_width_resolution_and_crop_are_parameter_warnings(self):
+        parameters = dict(arrival_time=[.0001, .03], burst_width=[.0001, .04], ref_freq=[600], dm=[0], scattering_timescale=[.01])
+        review = component_review(parameters, np.linspace(400, 800, 64), np.arange(100)*.001)
+        r = packet(component_review=review)
+        codes = {r["code"] for r in assess(r)["reasons"]}
+        self.assertTrue({"sub_bin_width", "broad_component", "crop_sensitive_component"} <= codes)
+        self.assertEqual(assess(r)["priority"], 3)
+
+    def test_used_rescue_does_not_clear_persistent_warning(self):
+        r = packet()
+        r["diagnostics"]["flags"] = ["positive_residual_island"]
+        r["challenge"] = dict(status="rejected", reason="insufficient improvement")
+        self.assertEqual(assess(r)["priority"], 1)
+        self.assertIn("rescue_used", [r["code"] for r in assess(r)["reasons"]])
+
+    def test_report_is_deterministic_escaped_and_preserves_assessments(self):
+        r = packet('<script>alert(1)</script>')
+        r["assessment"] = "review"
+        original = copy.deepcopy(r)
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            publish(out, [r], {"example": "sealed"})
+            first = read(out / "queue-seal.json")
+            publish(out, [r], {"example": "sealed"})
+            self.assertEqual(first, read(out / "queue-seal.json"))
+            self.assertTrue(all(sha256(out / n) == h for n, h in first.items()))
+            html = (out / "review.html").read_text(encoding="utf-8")
+            self.assertNotIn('<script>alert(1)</script>', html)
+            self.assertIn('&lt;script&gt;', html)
+            self.assertEqual(read(out / "queue.json")["events"][0]["assessment"], "review")
+        self.assertEqual(original, r)
+
+    def test_distinct_time_candidate_precedes_in_pulse_shape_error(self):
+        window = dict(sign="positive", strength=3., location="outside_fitted_emission")
+        separate = packet("separate", temporal_screen=dict(windows=[window]))
+        shape = packet("shape", temporal_screen=dict(windows=[dict(window, strength=9., location="within_fitted_emission")]))
+        self.assertEqual(ranked([shape, separate])[0]["id"], "separate")
+
+    def test_unsupported_challenge_does_not_consume_allowance(self):
+        from burstsurveyor import assistant
+        from burstsurveyor._storage import write
+        with tempfile.TemporaryDirectory() as temp:
+            ws = Path(temp)
+            write(ws / "session.json", dict(mode="combined"))
+            with self.assertRaisesRegex(ValueError, "Challenges require bounded"):
+                assistant._challenge(ws, None, dict(id="example"), {}, {}, [])
+            self.assertFalse((ws / "review/example/challenge.json").exists())
+
+
+if __name__ == "__main__":
+    unittest.main()

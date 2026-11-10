@@ -22,6 +22,8 @@ def _parser():
     prepare.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
     prepare.add_argument("--resume", action="store_true")
     prepare.add_argument("--no-auto-rescue", action="store_true")
+    prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation"), default="bounded",
+                         help="bounded is the stable default; combined/scintillation are experimental")
     decide = sub.add_parser(
         "decide", help="record assessments and test proposed fits"
     )
@@ -38,6 +40,8 @@ def _parser():
     fit.add_argument("inputs", type=Path)
     fit.add_argument("output", type=Path)
     fit.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
+    fit.add_argument('--mode', choices=('bounded', 'scintillation', 'combined'), default='bounded',
+                     help='experimental spectral/temporal selection; combined also requires replicated peak coverage')
     fit.add_argument(
         "--resume",
         action="store_true",
@@ -84,6 +88,14 @@ def _parser():
     diag.add_argument("run", type=Path)
     diag.add_argument("--event", required=True, dest="event_id")
     diag.add_argument("--input", required=True, type=Path)
+    triage = sub.add_parser("triage", help="rank a sealed fit for review without refitting")
+    triage.add_argument("run", type=Path)
+    triage.add_argument("inputs", type=Path)
+    triage.add_argument("output", type=Path)
+    triage.add_argument("--resume", action="store_true")
+    triage_verify = sub.add_parser("triage-verify", help="verify a ranked review queue and its evidence")
+    triage_verify.add_argument("output", type=Path)
+    triage_verify.add_argument("--run", type=Path)
     rescue = sub.add_parser("rescue")
     challenge = sub.add_parser("challenge")
     for cmd in (rescue, challenge):
@@ -118,11 +130,17 @@ def _run(args):
         if args.command == "prepare":
             return assistant.prepare(
                 args.inputs, args.workspace, workers=args.workers, resume=args.resume,
-                auto_rescue=not args.no_auto_rescue
+                auto_rescue=not args.no_auto_rescue, mode=args.mode
             )
         if args.command == "decide":
             return assistant.decide(args.workspace, args.inputs, args.decisions)
         return assistant.finish(args.workspace)
+    if args.command == "triage":
+        from .triage import audit
+        return audit(args.run, args.inputs, args.output, resume=args.resume)
+    if args.command == "triage-verify":
+        from .triage import verify_queue
+        return verify_queue(args.output, args.run)
     if args.command == "schema":
         from importlib.resources import files
 
@@ -155,10 +173,12 @@ def _run(args):
     if args.command == "fit":
         from .batch import fit
 
+        if args.mode in {'scintillation', 'combined'} and args.second_look:
+            raise ValueError('Experimental spectral modes do not support the bounded second-look rescue; inspect remaining residuals for review.')
         if args.limit < 1:
             raise ValueError("--limit must be positive")
         summary = _brief(
-            fit(args.inputs, args.output, workers=args.workers, resume=args.resume),
+            fit(args.inputs, args.output, workers=args.workers, resume=args.resume, mode=args.mode),
             args.output,
         )
         if args.second_look:

@@ -69,6 +69,7 @@ def diagnose(run, event_id, source):
 def diagnostic_data(event, data, entry, signal):
     """Inspect a verified event already loaded for its diagnostic figure."""
     from .secondlook import _discovery, _evidence
+    from .triage import temporal_screen
 
     train, held = data.indices[::2], data.indices[1::2]
     packet = (
@@ -116,5 +117,6 @@ def diagnostic_data(event, data, entry, signal):
         band_scaling_diagnostic=bands,
         spectral_diagnostic=frequency,
         channel_screening=screening,
+        temporal_screen=temporal_screen(data, signal),
         note="Cross-channel diagnostics are conditional on the existing fit. Band scales are review evidence only.",
     )
