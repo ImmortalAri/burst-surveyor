@@ -13,7 +13,8 @@ import numpy as np
 
 from ._storage import read, run_lock, sha256, write
 
-POLICY = dict(version=1, tentative_fold_score=2.5, maximum_windows=6)
+POLICY = dict(version=2, tentative_fold_score=2.5, maximum_windows=6,
+              alert_scope="replicated_missing_peak_only")
 LEVELS = {0: "unavailable", 1: "rescue", 2: "inspect", 3: "parameters", 4: "spectral", 5: "routine"}
 
 
@@ -89,7 +90,7 @@ def temporal_screen(data, signal):
                 note="Tentative review windows only; searched scores are not significances, independent validation, or proof of an extra pulse.")
 
 
-def assess(record):
+def _information(record):
     """Assess a single immutable packet; cohort ranking and human decisions are separate."""
     selected = record.get("selected") or {}
     diagnostic = record.get("diagnostics") or {}
@@ -160,6 +161,81 @@ def assess(record):
                 note="Heuristic inspection order, not a probability of error. Routine events still need visual review; no flag certifies physical components or parameter stability.")
 
 
+def component_omissions(data, signal, event):
+    """Require a resolved observed peak absent from the modeled morphology.
+
+    Reuse the fixed replicated-prominence policy, and require positive residual
+    evidence after channel amplitude projection. Shape/spectral mismatch at an
+    already modeled peak remains information, not a missing-component alert.
+    """
+    from scipy.signal import find_peaks
+    from .science.pulse_coverage import assess_pixels, _smooth
+    from .secondlook import _evidence
+
+    if signal is None:
+        return dict(status="no_model", missing=[], evidence=[])
+    if len(data.indices) < 12:
+        return dict(status="insufficient_channels", missing=[], evidence=[])
+    coverage = assess_pixels(data, signal)
+    missing, checked, profiles = [], [], {}
+    mask = np.ones(data.e.length, bool)
+    for feature in coverage["missing"]:
+        lo, hi = feature["channel_bins"]
+        key = (lo, hi)
+        if key not in profiles:
+            ids = data.indices[(data.indices >= lo) & (data.indices < hi)]
+            profile = np.zeros(data.e.length)
+            for ii in data.e.tiles(ids):
+                profile += (signal[ii] / data.var[ii, None]).sum(axis=0)
+            profiles[key] = profile / np.sum(1/data.var[ids])
+        model = _smooth(profiles[key], mask, feature["smooth_sigma"])
+        peaks, _ = find_peaks(model, prominence=.2*feature["contrast"])
+        covered = bool(np.any(abs(peaks-feature["time_bin"]) <= max(2, 2*feature["smooth_sigma"])))
+        proposal = dict(schema_version=1, event_id=event["id"],
+                        source_sha256=event["source_sha256"], action="add_component",
+                        time_bins=feature["time_bins"], channel_bins=feature["channel_bins"])
+        scores = [_evidence(data, data.indices[f::2], signal, proposal) for f in (0, 1)]
+        repeated = all(s is not None and s >= 3 for s in scores)
+        item = dict(feature, model_peak_present=covered, residual_fold_scores=scores,
+                    omission_alert=bool(not covered and repeated))
+        checked.append(item)
+        if item["omission_alert"]:
+            first, last = feature["time_bins"]
+            missing.append(dict(item, proposal=proposal, sign="positive",
+                strength=float(min(scores)), fold_scores=scores,
+                time_ms=[(first-.5)*data.e.coords.dt*1000, (last-.5)*data.e.coords.dt*1000],
+                frequency_mhz=sorted([float(data.e.frequency[lo]), float(data.e.frequency[hi-1])]),
+                location="unrepresented_observed_peak"))
+    return dict(status="checked", missing=missing, evidence=checked,
+                replicated_observed_features=len(coverage["evidence"]),
+                note="Missing resolved morphology only; not a certification of physical component count or parameter accuracy.")
+
+
+def assess(record):
+    """Promote only likely omitted peaks; keep other diagnostics informational."""
+    previous = _information(record)
+    diagnostic = record.get("diagnostics") or {}
+    reasons = [r for r in previous["reasons"] if r["code"] in {"no_export", "inspection_incomplete"}]
+    omission = diagnostic.get("component_omissions") or {}
+    windows = omission.get("missing", [])
+    if windows:
+        reasons.append(dict(priority=1, code="possible_missing_component",
+            evidence="A resolved observed peak repeats in channel folds, lacks a nearby modeled peak, and leaves replicated positive residuals after amplitude projection.",
+            action="Inspect the marked observed peak and consider the single permitted temporal rescue. Rule out interference before identifying another pulse."))
+        if record.get("challenge"):
+            reasons.append(dict(priority=1, code="rescue_used", evidence="The single rescue was already attempted.",
+                                action="Inspect its outcome; persistent missing morphology stays review."))
+    level = min((r["priority"] for r in reasons), default=5)
+    information = [r for r in previous["reasons"] if r["code"] not in {"no_export", "inspection_incomplete", "rescue_used"}]
+    return dict(priority=level, disposition=LEVELS[level], reasons=reasons,
+                information=information, windows=windows,
+                diagnostic_windows=previous["windows"],
+                strength=max((w["strength"] for w in windows), default=0.),
+                separate_emission=bool(windows), requires_review=level < 5,
+                omission_check_status=omission.get("status", "not_recorded"),
+                note="Alerts target likely missing components only. Other diagnostics are information. Unavailable fits/inspections are separate workflow failures. Routine does not certify physical parameters.")
+
+
 def ranked(records):
     rows = [dict(r, triage=assess(r)) for r in records]
     rows.sort(key=lambda r: (r["triage"]["priority"], not r["triage"]["separate_emission"], -r["triage"]["strength"], r["id"]))
@@ -188,14 +264,15 @@ def publish(folder, records, provenance):
         count = row.get("selected", {}).get("components")
         writer.writerow((row["rank"], row["id"], row.get("input_name", row["id"]), t["priority"], t["disposition"], count, row.get("assessment", "pending"), codes, action, row.get("figure")))
         evidence = "".join(f"<li><b>{escape(r['code'])}</b>: {escape(r['evidence'])}<br>{escape(r['action'])}</li>" for r in t["reasons"])
+        information = "".join(f"<li><b>{escape(r['code'])}</b>: {escape(r['evidence'])}</li>" for r in t.get("information", []))
         boxes = "".join(f"<li>{escape(w['sign'])}: {w['time_ms'][0]:.4g}–{w['time_ms'][1]:.4g} ms; {w['frequency_mhz'][0]:.4g}–{w['frequency_mhz'][1]:.4g} MHz; native bins {escape(str(w['time_bins']))}, channels {escape(str(w['channel_bins']))}; fold scores {escape(str([round(x, 2) for x in w['fold_scores']]))}</li>" for w in t["windows"])
         figure = f'<img loading="lazy" src="{escape(row["figure"], quote=True)}" alt="Observed spectrum, fitted profile, reconstruction and residual for {escape(row["id"])}">' if row.get("figure") else '<p class="warning">Figure unavailable: inspect the recorded reason.</p>'
         components = ((row.get("diagnostics") or {}).get("component_review") or {}).get("components", [])
         body = "".join('<tr>' + ''.join(f'<td>{escape(str(c.get(k)))}</td>' for k in ("component", "gaussian_arrival_ms", "gaussian_sigma_ms", "residual_dm_pc_cm3", "scattering_ms_at_reference", "flags")) + '</tr>' for c in components)
         label = row.get('input_name', row['id'])
         packet_link = f'<p><a href="{escape(row["packet"], quote=True)}">Evidence packet</a></p>' if row.get('packet') else ''
-        cards.append(f'<article id="event-{escape(row["id"], quote=True)}" data-name="{escape(label, quote=True)}" data-level="{t["priority"]}"><h2>#{row["rank"]} · {escape(label)} · {escape(t["disposition"])}</h2><p>Components: {count if count is not None else "unavailable"} · Assessment: {escape(row.get("assessment", "pending visual review"))}</p>{packet_link}<ul>{evidence or "<li>No screening concern found. Visual review still required.</li>"}</ul><details><summary>Conditional residual windows</summary><ul>{boxes or "<li>None identified or unavailable.</li>"}</ul></details>{figure}<details><summary>Component parameters (Gaussian sigma, not observed pulse width)</summary><table><thead><tr><th>Component</th><th>Center ms</th><th>Sigma ms</th><th>Residual DM</th><th>Scattering ms at reference</th><th>Flags</th></tr></thead><tbody>{body}</tbody></table></details></article>')
-    html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burst Surveyor · Review queue</title><style>body{font:16px system-ui;background:#f4f6f8;color:#172635;max-width:1250px;margin:auto;padding:24px}article{background:white;border:1px solid #c8d2dc;border-left:6px solid #8295a6;padding:20px;margin:24px 0;border-radius:6px}article[data-level="0"],article[data-level="1"]{border-left-color:#b82d35}article[data-level="2"]{border-left-color:#d68c16}img{width:100%;height:auto}table{border-collapse:collapse;display:block;overflow:auto}td,th{padding:8px;border:1px solid #ccd5de;text-align:left}li{margin:10px 0}.warning{color:#922b32}input,select{font:inherit;padding:8px}nav{position:sticky;top:0;background:#f4f6f8;padding:12px 0}h2{font-size:1.25rem}details{margin:16px 0}</style><h1>Review queue</h1><p>Inspect the highest priorities first. These are conditional screening warnings, not probabilities or physical component counts. A quiet screen does not certify a fit. All events still need visual review; review parameters separately from pulse coverage.</p>' + f'<p>{len(rows)} inputs · {report["exported"]} exports · {report["needs_review"]} prioritized for review. Human assessments remain separate from automatic priority.</p>' + '<nav><label>Find event <input id="search" type="search"></label> <label>Show <select id="level"><option value="5">All events</option><option value="1">Unavailable / rescue</option><option value="2">Include temporal concerns</option><option value="3">Include parameter concerns</option><option value="4">Include spectral concerns</option></select></label></nav><main>' + ''.join(cards) + '</main><script>const s=document.getElementById("search"),l=document.getElementById("level");function filter(){document.querySelectorAll("article").forEach(a=>a.hidden=Number(a.dataset.level)>Number(l.value)||!(a.id+" "+a.dataset.name).toLowerCase().includes(s.value.trim().toLowerCase()))}s.addEventListener("input",filter);l.addEventListener("change",filter);</script></html>'
+        cards.append(f'<article id="event-{escape(row["id"], quote=True)}" data-name="{escape(label, quote=True)}" data-level="{t["priority"]}"><h2>#{row["rank"]} · {escape(label)} · {escape(t["disposition"])}</h2><p>Components: {count if count is not None else "unavailable"} · Assessment: {escape(row.get("assessment", "pending visual review"))}</p>{packet_link}<details><summary>Parameter, spectral and residual information (not missing-component alerts)</summary><ul>{information or "<li>None recorded.</li>"}</ul></details><ul>{evidence or "<li>No screening concern found. Visual review still required.</li>"}</ul><details><summary>Conditional residual windows</summary><ul>{boxes or "<li>None identified or unavailable.</li>"}</ul></details>{figure}<details><summary>Component parameters (Gaussian sigma, not observed pulse width)</summary><table><thead><tr><th>Component</th><th>Center ms</th><th>Sigma ms</th><th>Residual DM</th><th>Scattering ms at reference</th><th>Flags</th></tr></thead><tbody>{body}</tbody></table></details></article>')
+    html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Burst Surveyor · Review queue</title><style>body{font:16px system-ui;background:#f4f6f8;color:#172635;max-width:1250px;margin:auto;padding:24px}article{background:white;border:1px solid #c8d2dc;border-left:6px solid #8295a6;padding:20px;margin:24px 0;border-radius:6px}article[data-level="0"],article[data-level="1"]{border-left-color:#b82d35}article[data-level="2"]{border-left-color:#d68c16}img{width:100%;height:auto}table{border-collapse:collapse;display:block;overflow:auto}td,th{padding:8px;border:1px solid #ccd5de;text-align:left}li{margin:10px 0}.warning{color:#922b32}input,select{font:inherit;padding:8px}nav{position:sticky;top:0;background:#f4f6f8;padding:12px 0}h2{font-size:1.25rem}details{margin:16px 0}</style><h1>Review queue</h1><p>Inspect possible missing-component alerts first. Unavailable fits or inspections have a separate workflow status. Spectral, parameter and weaker residual diagnostics are informational and do not require a component alert. A quiet screen does not certify physical parameters. All events still need visual review.</p>' + f'<p>{len(rows)} inputs · {report["exported"]} exports · {report["needs_review"]} prioritized for review. Human assessments remain separate from automatic priority.</p>' + '<nav><label>Find event <input id="search" type="search"></label> <label>Show <select id="level"><option value="5">All events</option><option value="1">Unavailable / rescue</option><option value="2">Include temporal concerns</option><option value="3">Include parameter concerns</option><option value="4">Include spectral concerns</option></select></label></nav><main>' + ''.join(cards) + '</main><script>const s=document.getElementById("search"),l=document.getElementById("level");function filter(){document.querySelectorAll("article").forEach(a=>a.hidden=Number(a.dataset.level)>Number(l.value)||!(a.id+" "+a.dataset.name).toLowerCase().includes(s.value.trim().toLowerCase()))}s.addEventListener("input",filter);l.addEventListener("change",filter);</script></html>'
     (folder / "queue.csv").write_text(table.getvalue(), encoding="utf-8", newline="")
     (folder / "review.html").write_text(html, encoding="utf-8")
     seal = {name: sha256(folder / name) for name in ("queue.json", "queue.csv", "review.html")}
