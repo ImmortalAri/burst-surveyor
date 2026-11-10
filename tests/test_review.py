@@ -58,7 +58,12 @@ class DisplayTests(unittest.TestCase):
             events = {row["input_name"]: row for row in verify(run)["events"]}
             for name, row in events.items():
                 dest = root / (name + ".png")
-                rec = plot_verified_event(run, row, root / "inputs" / name, dest)
+                try:
+                    rec = plot_verified_event(run, row, root / "inputs" / name, dest)
+                except RuntimeError as exc:
+                    if "available memory" not in str(exc):
+                        raise
+                    self.skipTest("Insufficient available RAM for guarded native display test")
                 self.assertEqual(rec["source_sha256"], row["source_sha256"])
                 self.assertEqual(rec["figure_sha256"], sha256(dest))
                 self.assertEqual(dest.read_bytes()[:8], b"\x89PNG\r\n\x1a\n")
