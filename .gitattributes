@@ -1,0 +1,6 @@
+# Run manifests hash installed scientific sources byte-for-byte.
+*.py -text
+*.json -text
+*.npz binary
+*.png binary
+*.whl binary

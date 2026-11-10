@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Burst Surveyor temporal proposal",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","event_id","source_sha256","action","time_bins","channel_bins"],
+  "$defs": {"interval": {"type":"array","prefixItems":[{"type":"integer","minimum":0},{"type":"integer","minimum":1}],"items":false,"minItems":2,"maxItems":2,"description":"Zero-based half-open interval in the original NPZ. End must be larger than start and within the corresponding axis."}},
+  "properties": {
+    "schema_version":{"const":1},
+    "event_id":{"type":"string","pattern":"^[0-9a-f]{24}$"},
+    "source_sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "action":{"const":"add_component"},
+    "time_bins":{"$ref":"#/$defs/interval"},
+    "channel_bins":{"$ref":"#/$defs/interval"}
+  }
+}
