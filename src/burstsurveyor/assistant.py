@@ -403,7 +403,7 @@ def _automatic_challenge(ws, inputs, event, summary):
         action = {
             **{k: desc[k] for k in ("id", "source_sha256", "packet_sha256")},
             "action": "challenge",
-            "observation": "Automatic: positive temporal residual replicated across channel splits.",
+            "observation": "Automatic: an observed replicated peak is absent from the model and leaves a repeated positive residual.",
             "time_bins": proposal["time_bins"],
             "channel_bins": proposal["channel_bins"],
         }
@@ -501,9 +501,8 @@ def _final_action(action, packet):
         )
         flags = (packet.get("diagnostics") or {}).get("flags", [])
         _check(
-            not set(flags) & {"broad_edge_component", "spectral_model_limited",
-                              "channel_mask_needs_review", "positive_residual_island"},
-            "Unresolved background, spectral limitation or temporal residual; mark this event for review",
+            "possible_missing_component" not in flags,
+            "Possible missing component; mark this event for review",
         )
     elif action["action"] == "unresolved":
         _check(

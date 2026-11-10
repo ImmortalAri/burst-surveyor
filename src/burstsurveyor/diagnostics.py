@@ -69,7 +69,7 @@ def diagnose(run, event_id, source):
 def diagnostic_data(event, data, entry, signal):
     """Inspect a verified event already loaded for its diagnostic figure."""
     from .secondlook import _discovery, _evidence
-    from .triage import temporal_screen
+    from .triage import temporal_screen, component_omissions
 
     train, held = data.indices[::2], data.indices[1::2]
     packet = (
@@ -105,6 +105,9 @@ def diagnostic_data(event, data, entry, signal):
     screening = getattr(data, "channel_screening", None)
     if screening and screening["status"] == "skipped_safety_cap":
         flags.append("channel_mask_needs_review")
+    omissions = component_omissions(data, signal, event)
+    if omissions["missing"]:
+        flags.append("possible_missing_component")
     return dict(
         schema_version=1,
         event_id=event["id"],
@@ -112,11 +115,13 @@ def diagnostic_data(event, data, entry, signal):
         usable_channels=len(data.indices),
         offburst_bins=int(data.noise_time.sum()),
         flags=flags,
-        temporal_proposal=packet if directional else None,
+        temporal_proposal=omissions["missing"][0]["proposal"] if omissions["missing"] else None,
+        residual_proposal=packet if directional else None,
         check_channel_score=check,
         band_scaling_diagnostic=bands,
         spectral_diagnostic=frequency,
         channel_screening=screening,
         temporal_screen=temporal_screen(data, signal),
+        component_omissions=omissions,
         note="Cross-channel diagnostics are conditional on the existing fit. Band scales are review evidence only.",
     )

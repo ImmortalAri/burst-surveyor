@@ -1,20 +1,17 @@
-# Review priority
+# Review queue
 
-`prepare` writes `review/review.html`, `review/queue.json` and `review/queue.csv` before terminal assessments are required. The queue includes every input. It uses the current selected packet after a rescue, even when the trial was rejected. Decisions remain explicit and bound to packet hashes; automatic priority never changes a human assessment.
+Alerts target likely missing components. Other diagnostics are information and do not force review.
 
-| Priority | Meaning | Inspection |
-|---|---|---|
-| 0 · unavailable | No export, missing native diagnostics or unavailable figure | Inspect the failure and observation; retry when resources permit or refit separately. |
-| 1 · rescue | A positive temporal residual passes the existing discovery/check screen | Inspect the native time-frequency box; consider the one permitted rescue. |
-| 2 · inspect | A tentative positive/negative window repeats across channel folds, or noise/mask/coverage checks are limited | Check faint emission, filled troughs, interference and shape errors. A warning does not authorize an extra component. |
-| 3 · parameters | Width below a native bin, broad/crop-sensitive component, convergence limit or spectral model limitation | Review DM, scattering, width, crop and model dependence before physical interpretation. |
-| 4 · spectral | Frequency-amplitude structure or an isolated residual outlier | Inspect the frequency spectrum and interference; avoid using temporal components to absorb spectral mismatch. |
-| 5 · routine | No screening concern identified | Inspect all panels and parameters; the screen can miss weak or unusual structure. |
+| Status | Meaning |
+|---|---|
+| Unavailable | No export, or a native figure/diagnostic inspection could not be completed. A separate workflow failure. |
+| Rescue | A replicated resolved observed peak lacks a nearby modeled peak and leaves repeated positive residuals. Inspect for omitted emission or interference. |
+| Routine | No missing-component alert found. Inspect the reconstruction; physical parameter accuracy is not certified. |
 
-Within a priority, possible separate emission is inspected before mismatches within the fitted pulse, then the weaker channel-fold residual score orders events, followed by event ID for reproducibility. A positive window outside fitted emission means its band-averaged fitted signal is below 10% of that band's peak; it can still be interference or a shape error. These searched scores are not probabilities or calibrated detection significances. Alternate channels can be correlated; screening, masks and the existing fit use the observation. No test here establishes physical component count.
+The native prominence screen uses full/half/quarter channel bands, multiple smoothing scales, observed peak/trough contrasts, off-burst noise and frequency-correlation inflation. A feature requires pooled prominence at least6 and contrast at least3 in both channel folds. An omission must lose at least half the local contrast and at least6 noise units. A nearby model peak with prominence at least20% of observed contrast within two smoothing scales (minimum two bins) counts as represented. An alert also requires amplitude-profiled positive residual scores at least3 in both folds. These conditional screening scores are not calibrated significances. Narrow-band, faint or unusual structure can be missed.
 
-The tentative screen uses per-channel amplitude projection of the existing temporal prediction, full/half/quarter channel bands, power-of-two time windows up to one eighth of the record, and both residual signs. A window must score at least 2.5 in each fold after robust scaling and frequency-correlation inflation. This threshold changes review sensitivity only: fitting, acceptance thresholds, pixels and exported parameters remain untouched. Fewer than six usable channels in either fold makes that band unavailable to this screen. DM drift, very narrow frequency structure and faint correlated signals can escape detection.
+Spectral mismatch, negative/weak residuals, crop sensitivity, broad/sub-bin components, parameter bounds, noise concerns and fit budgets appear in a collapsed information panel. They can affect parameter interpretation without requiring another temporal component. A visually adequate reconstruction can be retained while recording these limitations. A persistent possible-missing-component alert requires review.
 
-Component geometry warns when Gaussian sigma is below one sample, at least one quarter of the record, or when the center plus two sigma and three reference scattering times reaches the crop. This is a conservative heuristic, not an uncertainty interval. A valid narrow or truncated burst can trigger it. DM/scattering/width stability requires separate sensitivity or uncertainty analysis.
+The local review/review.html, queue.json and queue.csv include every event and the latest selected follow-up, including rejected rescues. One external rescue is allowed in bounded mode. Explicit assessments remain separate from automatic priority and bound to input/packet hashes.
 
-The HTML is local and works without a server or external assets. It filters by event name and priority and links the observed profile, model and residual figure with the component table. JSON/CSV/HTML hashes are recorded together. An existing sealed numerical run can be audited with `triage RUN INPUTS OUTPUT`; `--resume` verifies the same run, sources, inputs and saved evidence and can recover resource-limited inspections without overwriting the initial evidence. This does not refit or create terminal decisions. Verify the queue and its bound evidence with `triage-verify OUTPUT --run RUN`. Hash verification checks integrity, not scientific correctness.
+An existing sealed numerical run can be diagnosed without refitting: triage RUN INPUTS OUTPUT. Resume with identical sources and --resume; resource-limited inspections can recover without overwriting initial evidence. Verify using triage-verify OUTPUT --run RUN. Hash verification checks integrity, not scientific correctness. HTML uses no external assets or server.

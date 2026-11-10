@@ -15,10 +15,15 @@ class ReviewGuardTests(unittest.TestCase):
                 packet = dict(inspection_status='figure_ready',
                               selected={'prediction': 'sealed.npz'},
                               diagnostics={'flags': [flag]})
-                with self.assertRaisesRegex(ValueError, 'mark this event for review'):
-                    _final_action({'action': 'retain'}, packet)
+                _final_action({'action': 'retain'}, packet)
                 _final_action({'action': 'review'}, packet)
                 self.assertEqual(packet['selected']['prediction'], 'sealed.npz')
+
+    def test_missing_component_requires_review(self):
+        packet = dict(inspection_status='figure_ready', selected={'prediction':'sealed.npz'},
+                      diagnostics={'flags':['possible_missing_component']})
+        with self.assertRaisesRegex(ValueError, 'Possible missing component'):
+            _final_action({'action':'retain'},packet)
 
     def test_clean_export_can_be_retained(self):
         _final_action({'action': 'retain'}, dict(inspection_status='figure_ready',
