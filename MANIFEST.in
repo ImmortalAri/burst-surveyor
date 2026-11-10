@@ -1,0 +1,13 @@
+include README.md AGENTS.md CITATION.cff LICENSE constraints.txt
+include vendor/*.whl vendor/*.json vendor/*.txt vendor/*.md vendor/verify.py
+recursive-include src/burstsurveyor *.json
+recursive-include examples *.npz *.json *.png
+include docs/reference.md
+recursive-include tests *.py
+prune .git
+prune .venv
+prune build
+prune dist
+prune wheelhouse
+prune .pytest_cache
+global-exclude __pycache__ *.py[cod] *.log *.tmp

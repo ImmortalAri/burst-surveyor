@@ -1,0 +1,99 @@
+{
+  "version": "0.1.0",
+  "commit": "11a049f5cb449235810b5bebdbb26e20b6f5790c",
+  "wheel": "fitburst-0.1.0-py3-none-any.whl",
+  "files": {
+    "__init__.py": {
+      "exact": "bd82c533c4123a9cd27a95bdd566f376c531d3abc827a8a413572211705ea69b",
+      "lf": "56d3ef554bdd725873d9f845acc94a14851c6cd1bd39539a9d4dab65c711c43c"
+    },
+    "analysis/__init__.py": {
+      "exact": "53a5720d71cc16e357db4e1bfb19fa07820ea46f3ca6c5f4e8420db19a6b84c2",
+      "lf": "6ec143eefb0a6a92e75480d5efdd8309a81931f49ecdd5cb1cd65e3a0fc0835c"
+    },
+    "analysis/fitter.py": {
+      "exact": "1063ba78df0cfb5bd5e723ca3997100436c05164ee61e9078e0d1aab6d09c634",
+      "lf": "8a194bb417fbd819c06eb545743644ea3fae1e142beaed002261e4b4b029dcf1"
+    },
+    "analysis/model.py": {
+      "exact": "9f75a930e0b0fb919945b8f55ff20a18319d222af0d9669ccec51e1027e107a1",
+      "lf": "ff01443d1b22c5c6711ccba806ee061e4227e7c734d0db213708b4d8cfff61b1"
+    },
+    "analysis/peak_finder.py": {
+      "exact": "8e426984cdd0e03dfb16fa133140ebda805bbf59ab2f3b12357f6837667a36ab",
+      "lf": "0a111d382a96fc1cd8f047b8173bc30832c6a1ab3b645581990dbd6da70a6f12"
+    },
+    "analysis/stats.py": {
+      "exact": "b3cc8e8bbe52ae3177024bf42eafaf4f93c0ad0f848f41c03898c4465d78a203",
+      "lf": "682121b1b93d8cb2368d50ad11b52d5a0f3f19e9e41e2198c03dc9cef7c56f78"
+    },
+    "backend/__init__.py": {
+      "exact": "429cf92af23ff9d358ce4ea8a5fd93802766f257715a55f7d10a3e336ffbb138",
+      "lf": "1c168e28763cf268369b1ac63831433674a6af8843b71a491d6f6d9a59a11407"
+    },
+    "backend/general.yaml": {
+      "exact": "d8d0f8dac35338bd90a7ec1aa0678a0cfff189e93dd6c3fca451db6e2587b55d",
+      "lf": "ad2b248d788c1a985f2ed6748b155800add030d0f7d851e45e8b3e9c1e435f4d"
+    },
+    "backend/generic.py": {
+      "exact": "f781b7fa13e9e5262d6b99a13d14c7b6d8e70fbaead564072272b39a33ddcc82",
+      "lf": "5524f41952e53b8c98c353e100f1c6e46cf94e370f4e279119b5bb01158f23ba"
+    },
+    "backend/telescopes.yaml": {
+      "exact": "d3f1c5e337c10672bce48146b153bb7f296b21d7df6f1ba3b6f539568f7d5756",
+      "lf": "77a336b65f28f0ae9d46b1f2bcfa9c814f04afe05643a9ffe0fe096c176dd0ac"
+    },
+    "pipelines/__init__.py": {
+      "exact": "0b22dae38792aedd45b1b08a6025f81ab4235fe4a40738a4d8d514bab97e42e2",
+      "lf": "f8922dde0d5e05fe1b55034d41de0905e40d03ba342cad16f6d60a297febe6cf"
+    },
+    "pipelines/fitburst_pipeline.py": {
+      "exact": "1798f57b66d604948495c734b3d91846617831a87e1755b2b45d6e6b0d2283c6",
+      "lf": "bf177277a240e2d3ff94b86859fd5007cff0ec8cd2555372f09505ff5d323b89"
+    },
+    "pipelines/simulate_burst.py": {
+      "exact": "c7c6e8c53ccc8ef74dfa7a021e76ee2fe5f40dd0aeefb28d023689d06f6f1a31",
+      "lf": "a1e3dd369b6ec5f60425a32b836f6a497d76051e171239225a460d4bc66781ff"
+    },
+    "routines/__init__.py": {
+      "exact": "4b878ba639cb8fcbd522c4fbe2355e26f20e66fbaa267cbb48026e5eb58a93b2",
+      "lf": "56047d170bc5484581c9f893c9bb2aefe404144f76342263636b3709cfe8f4e6"
+    },
+    "routines/derivative.py": {
+      "exact": "febca767115556c64fdbe6e4b1cd3a794630115973dc4784fff0caa5ca0e5eef",
+      "lf": "5f804da20b1c825ab3530bef9fecbdee0f9dc6ba6dafc65d0c5c5242558625e0"
+    },
+    "routines/ism.py": {
+      "exact": "220858e1c38b099923c0f031b553e0abec3562c8f2a5129e7f38db9a8b82b900",
+      "lf": "4fb6edfbfb2eb677ff6a84dd8a4a9e46b3fd99521a83d557a231dd579bedc3bb"
+    },
+    "routines/manipulate.py": {
+      "exact": "cda15b1cea7b040cb961da30a1632614d178880dc316b80abee4e7036abbcd10",
+      "lf": "92b19173df5f952a23b61e53bf82020d649b43c1b03be96a24bbcf2d3a82a15c"
+    },
+    "routines/profile.py": {
+      "exact": "21a3bf4043f20ed14494d98811c1341c806058575a9e5859d7299608e1871f6a",
+      "lf": "03e59eb7d446983931ab754faf6b0b21d86ba426a91c32a9af10fd923031279b"
+    },
+    "routines/spectrum.py": {
+      "exact": "ee7f04b65089bf79da1e6edc4179f745633ca1cd349c33e6dd2fcb71f54a3e3d",
+      "lf": "5b0ce46a54758c79244c30f18ff72f15ea5eac67923542471ed1ff8affa34d6f"
+    },
+    "routines/times.py": {
+      "exact": "9301c368632020f0513d242eb9a0bbec41e45a98a28fc0dfaa888fd58a910837",
+      "lf": "ff1f54ff3d7719b31dbc43e4863833fee8d6cd6c803795ef5266c5ed13c8530b"
+    },
+    "utilities/__init__.py": {
+      "exact": "a46de4e1a132f7eabe72e392b6e8c2ab788e7031b9f1c926c5140a79bc400fad",
+      "lf": "216168898f7a82aab311d64cb04dd08d47234287a3f0214d01dc42aaf84679b1"
+    },
+    "utilities/bases.py": {
+      "exact": "73dfe1f1712bae1aa47c335f90cfa6e16d5dc5c0cabb114ea72c47ad014067f3",
+      "lf": "f33ee00ae53e9f5c686cd165a9992ce2bc27c92ecc859937cefedb83e782618e"
+    },
+    "utilities/plotting.py": {
+      "exact": "13f652a40769741f006f8e10390652202c10317d255fb6bd0e8f04fd4dac9fcd",
+      "lf": "7ee038ce70ac7e88b3d50bef8a9c002a07f8280c6fcb824b2405949b210edfec"
+    }
+  }
+}

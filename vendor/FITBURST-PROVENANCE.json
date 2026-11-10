@@ -1,0 +1,107 @@
+{
+  "distribution": "fitburst",
+  "version": "0.1.0",
+  "commit": "11a049f5cb449235810b5bebdbb26e20b6f5790c",
+  "repository": "https://github.com/CHIMEFRB/fitburst",
+  "source_tree_sha": "ebed20f28ac35993d863bae7ac0d8961bce89d7b",
+  "build_backend": "poetry-core 2.5.0",
+  "source_date_epoch": 1767225600,
+  "wheel": "fitburst-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "c7dde071fbdfb556a1755f928c5ebe80ef4f558f013e6979faf0ae43d9d9adc3",
+  "license_lf_sha256": "8fb256cb0a7cde72551d8d563b3702ef5f8e5ae4de20dbb3b21eec5b7d9b2ea9",
+  "files": {
+    "fitburst/__init__.py": {
+      "sha256": "bd82c533c4123a9cd27a95bdd566f376c531d3abc827a8a413572211705ea69b",
+      "upstream_git_blob": "303d133b0b20adc5a0fe527abcf7c063e22d20c8"
+    },
+    "fitburst/analysis/__init__.py": {
+      "sha256": "53a5720d71cc16e357db4e1bfb19fa07820ea46f3ca6c5f4e8420db19a6b84c2",
+      "upstream_git_blob": "ad6b6d486b9a74a3bfd8f8be79c2994d0fa9bb10"
+    },
+    "fitburst/analysis/fitter.py": {
+      "sha256": "1063ba78df0cfb5bd5e723ca3997100436c05164ee61e9078e0d1aab6d09c634",
+      "upstream_git_blob": "a292bb133cdfe9ec5f60ae34b4eaeca9d401ecc7"
+    },
+    "fitburst/analysis/model.py": {
+      "sha256": "9f75a930e0b0fb919945b8f55ff20a18319d222af0d9669ccec51e1027e107a1",
+      "upstream_git_blob": "1400280dee23a3da9ad36b60123b24d65496cd62"
+    },
+    "fitburst/analysis/peak_finder.py": {
+      "sha256": "8e426984cdd0e03dfb16fa133140ebda805bbf59ab2f3b12357f6837667a36ab",
+      "upstream_git_blob": "7ed70ac9c67ea1b9c7dc0fc57497204a15b2fc04"
+    },
+    "fitburst/analysis/stats.py": {
+      "sha256": "b3cc8e8bbe52ae3177024bf42eafaf4f93c0ad0f848f41c03898c4465d78a203",
+      "upstream_git_blob": "cd7dae670a8cdd44ad0dbaa2307f976d7d2c0f7d"
+    },
+    "fitburst/backend/__init__.py": {
+      "sha256": "429cf92af23ff9d358ce4ea8a5fd93802766f257715a55f7d10a3e336ffbb138",
+      "upstream_git_blob": "35562b45660729150a73100e33dc29af7aa41b49"
+    },
+    "fitburst/backend/general.yaml": {
+      "sha256": "d8d0f8dac35338bd90a7ec1aa0678a0cfff189e93dd6c3fca451db6e2587b55d",
+      "upstream_git_blob": "65fe9edd8c6d9ce07b918ab5cfe75ad9e9f66fc9"
+    },
+    "fitburst/backend/generic.py": {
+      "sha256": "f781b7fa13e9e5262d6b99a13d14c7b6d8e70fbaead564072272b39a33ddcc82",
+      "upstream_git_blob": "fcf043973a6bb0a6b1a2636b7db29b288a635150"
+    },
+    "fitburst/backend/telescopes.yaml": {
+      "sha256": "d3f1c5e337c10672bce48146b153bb7f296b21d7df6f1ba3b6f539568f7d5756",
+      "upstream_git_blob": "88ba22a9ff96cf37418fdb0bf1dc3547205ae4ff"
+    },
+    "fitburst/pipelines/__init__.py": {
+      "sha256": "0b22dae38792aedd45b1b08a6025f81ab4235fe4a40738a4d8d514bab97e42e2",
+      "upstream_git_blob": "4265cc3e6c16c09774190fa55d609cd9fe0808e4"
+    },
+    "fitburst/pipelines/fitburst_pipeline.py": {
+      "sha256": "1798f57b66d604948495c734b3d91846617831a87e1755b2b45d6e6b0d2283c6",
+      "upstream_git_blob": "2c64808893ee3e94534e0e48abfbf96fe5558158"
+    },
+    "fitburst/pipelines/simulate_burst.py": {
+      "sha256": "c7c6e8c53ccc8ef74dfa7a021e76ee2fe5f40dd0aeefb28d023689d06f6f1a31",
+      "upstream_git_blob": "1e055251c72fd1e5042424f74c871383183a4dfa"
+    },
+    "fitburst/routines/__init__.py": {
+      "sha256": "4b878ba639cb8fcbd522c4fbe2355e26f20e66fbaa267cbb48026e5eb58a93b2",
+      "upstream_git_blob": "8e81ecc1c61213c3a93a717f48ceffbe2c10c4df"
+    },
+    "fitburst/routines/derivative.py": {
+      "sha256": "febca767115556c64fdbe6e4b1cd3a794630115973dc4784fff0caa5ca0e5eef",
+      "upstream_git_blob": "b63669e63636acd9f69bcb16632cbb9422486eec"
+    },
+    "fitburst/routines/ism.py": {
+      "sha256": "220858e1c38b099923c0f031b553e0abec3562c8f2a5129e7f38db9a8b82b900",
+      "upstream_git_blob": "66355c68834b25d106b93b149e4d69ec198fd911"
+    },
+    "fitburst/routines/manipulate.py": {
+      "sha256": "cda15b1cea7b040cb961da30a1632614d178880dc316b80abee4e7036abbcd10",
+      "upstream_git_blob": "8da233258cbf8a754259af8a85083c5d9c034e4a"
+    },
+    "fitburst/routines/profile.py": {
+      "sha256": "21a3bf4043f20ed14494d98811c1341c806058575a9e5859d7299608e1871f6a",
+      "upstream_git_blob": "2522e0f65d2018d883e4114d59861b3795819d62"
+    },
+    "fitburst/routines/spectrum.py": {
+      "sha256": "ee7f04b65089bf79da1e6edc4179f745633ca1cd349c33e6dd2fcb71f54a3e3d",
+      "upstream_git_blob": "bf60a1adccd0cc015b2af307e07aae00cea1ca02"
+    },
+    "fitburst/routines/times.py": {
+      "sha256": "9301c368632020f0513d242eb9a0bbec41e45a98a28fc0dfaa888fd58a910837",
+      "upstream_git_blob": "6b3a75057201fdc5758702c576e2d828e3b4f095"
+    },
+    "fitburst/utilities/__init__.py": {
+      "sha256": "a46de4e1a132f7eabe72e392b6e8c2ab788e7031b9f1c926c5140a79bc400fad",
+      "upstream_git_blob": "5fc2a1248d5501aef14d6cc36fd26514bcdce35e"
+    },
+    "fitburst/utilities/bases.py": {
+      "sha256": "73dfe1f1712bae1aa47c335f90cfa6e16d5dc5c0cabb114ea72c47ad014067f3",
+      "upstream_git_blob": "f4d52524df6d1be0d916432675bee9cc7b96afc9"
+    },
+    "fitburst/utilities/plotting.py": {
+      "sha256": "13f652a40769741f006f8e10390652202c10317d255fb6bd0e8f04fd4dac9fcd",
+      "upstream_git_blob": "cc0aa30352e2c65d6db7b08a87be7635044b9009"
+    }
+  },
+  "validation": "All 23 scientific source/config files are identical to the reference installation. Public Git tree members match after CRLF/LF normalization."
+}
