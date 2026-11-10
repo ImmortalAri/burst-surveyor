@@ -1,6 +1,10 @@
 """Review prioritization must warn without changing numerical exports."""
 import copy
+import json
 from pathlib import Path
+import re
+import shutil
+import subprocess
 import tempfile
 from types import SimpleNamespace
 import unittest
@@ -128,6 +132,27 @@ class TriageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Challenges require bounded"):
                 assistant._challenge(ws, None, dict(id="example"), {}, {}, [])
             self.assertFalse((ws / "review/example/challenge.json").exists())
+
+    @unittest.skipUnless(shutil.which("node"), "Node is unavailable for the optional HTML execution check")
+    def test_actual_html_search_and_priority_filters_execute(self):
+        with tempfile.TemporaryDirectory() as temp:
+            out = Path(temp)
+            publish(out, [dict(packet(), input_name="Example.NPZ"),
+                          dict(packet("missing"), input_name="missing.npz", inspection_status="resource_limited")], {})
+            html = (out / "review.html").read_text(encoding="utf-8")
+            source = re.search(r"<script>(.*?)</script>", html, re.S).group(1)
+            program = """
+const vm=require('node:vm'),assert=require('node:assert/strict');
+const search={value:'',addEventListener(){}},level={value:'5',addEventListener(){}};
+const rows=[{id:'event-example',dataset:{name:'Example.NPZ',level:'5'}},
+            {id:'event-missing',dataset:{name:'missing.npz',level:'0'}}];
+const context={document:{getElementById(id){return id==='search'?search:level},querySelectorAll(){return rows}}};
+vm.createContext(context);vm.runInContext(SOURCE,context,{timeout:1000});
+context.filter();assert.ok(rows.every(r=>!r.hidden));
+search.value='example.npz';context.filter();assert.ok(!rows[0].hidden&&rows[1].hidden);
+search.value='';level.value='1';context.filter();assert.ok(rows[0].hidden&&!rows[1].hidden);
+""".replace("SOURCE", json.dumps(source))
+            subprocess.run([shutil.which("node"), "-e", program], check=True, capture_output=True, timeout=10)
 
 
 if __name__ == "__main__":
