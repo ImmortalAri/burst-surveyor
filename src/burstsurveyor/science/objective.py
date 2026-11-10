@@ -104,6 +104,9 @@ class ReconstructionData(Data):
 
 
 def predict(d, r, ii):
+    if r.get('model') == 'channel-amplitudes-v1':
+        from .scintillation import prediction
+        return prediction(d, r, ii)
     return pulse(np.asarray(r["x"]), r["n"], r["scatter"], d.e.coords, ii, d.t)[0]
 
 

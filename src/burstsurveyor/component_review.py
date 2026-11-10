@@ -46,6 +46,14 @@ def component_review(parameters, frequency, time_s):
             raise ValueError("Nonfinite dispersed component arrival")
         outside = bool(np.all(centers < first) or np.all(centers > last))
         broad_edge = outside and sigma[j] >= duration / 4
+        geometry = ["broad_edge_component"] if broad_edge else []
+        if sigma[j] < dt:
+            geometry.append("sub_bin_width")
+        if sigma[j] >= duration / 4:
+            geometry.append("broad_component")
+        if (centers.min() - 2*sigma[j] < first
+                or centers.max() + 2*sigma[j] + 3*tau[j] > last):
+            geometry.append("crop_sensitive_component")
         rows.append(dict(
             component=j + 1, reference_mhz=float(ref[j]),
             gaussian_arrival_ms=float(1000 * arrival[j]),
@@ -53,11 +61,12 @@ def component_review(parameters, frequency, time_s):
             gaussian_arrival_range_ms=[float(1000*centers.min()), float(1000*centers.max())],
             sigma_fraction_of_record=float(sigma[j] / duration),
             residual_dm_pc_cm3=float(dm[j]), scattering_ms_at_reference=float(1000*tau[j]),
-            spectral_index=float(slope[j]), spectral_running=float(running[j]),
+            spectral_index=None if parameters.get('spectral_model') == 'channel-amplitudes-v1' else float(slope[j]),
+            spectral_running=None if parameters.get('spectral_model') == 'channel-amplitudes-v1' else float(running[j]),
             all_gaussian_centers_outside_record=outside,
-            flags=["broad_edge_component"] if broad_edge else [],
+            flags=geometry,
         ))
-    flagged = [r["component"] for r in rows if r["flags"]]
+    flagged = [r["component"] for r in rows if "broad_edge_component" in r["flags"]]
     return dict(
         component_count=n, record_edges_ms=[1000*first, 1000*last], components=rows,
         flags=["broad_edge_component"] if flagged else [], review_components=flagged,

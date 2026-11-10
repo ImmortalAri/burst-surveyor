@@ -37,4 +37,4 @@ burstsurveyor = ["science/*.json", "data/*.json"]
 
 [tool.setuptools.data-files]
 "share/burst-surveyor" = ["AGENTS.md"]
-"share/burst-surveyor/docs" = ["docs/reference.md"]
+"share/burst-surveyor/docs" = ["docs/reference.md", "docs/review-queue.md", "docs/selection.md"]

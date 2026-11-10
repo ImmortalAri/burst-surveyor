@@ -98,8 +98,8 @@ def region_parts(d, regions):
 
 def fit_event(path, scratch_directory, *, mode="bounded"):
     """Fit raw intensity pixels. Return the selected row and every search receipt."""
-    if mode not in {"fast", "bounded"}:
-        raise ValueError("mode must be 'fast' or 'bounded'")
+    if mode not in {"fast", "bounded", "scintillation", "combined"}:
+        raise ValueError("mode must be 'fast', 'bounded', 'scintillation' or 'combined'")
     with threadpool_limits(limits=1):
         return _fit_event(path, scratch_directory, mode)
 
@@ -112,6 +112,19 @@ def _fit_event(path, scratch_directory, mode):
     config = load_config()
     d = ReconstructionData(Event(raw, entry["grid"], config))
     stage_seconds["data_preparation"] = time.monotonic() - stage_start
+    if mode in {"scintillation", "combined"}:
+        if mode == 'combined':
+            from .combined import fit
+        else:
+            from .scintillation import fit
+        stage_start = time.monotonic()
+        result = fit(d, entry["source_sha256"])
+        stage_seconds['predictive_selection'] = time.monotonic()-stage_start
+        return dict(result, source_sha256=entry['source_sha256'], grid=entry['grid'],
+                    mode=mode, fast_selected=None, bounded_review=None,
+                    status='provisional' if result['selected'] else 'unresolved',
+                    seconds=time.monotonic()-started, stage_seconds=stage_seconds,
+                    work=dict(d.e.budget))
     stage_start = time.monotonic()
     regions = find_regions(d)
     stage_seconds["discovery"] = time.monotonic() - stage_start
@@ -283,5 +296,27 @@ def export_event(path, primary, prediction_path, scratch_directory):
             pulse_fn=pulse,
             source_sha256=source["source_sha256"],
         )
+        if primary.get('mode')=='combined' and row.get('status')=='provisional':
+            from .pulse_coverage import assess_pixels,residual_degradation
+            with np.load(prediction_path,allow_pickle=False) as archive:
+                if (str(archive['source_sha256'])!=source['source_sha256'] or
+                    not np.array_equal(archive['channels'],data.indices) or
+                    not np.array_equal(archive['frequency'],data.e.frequency) or
+                    not np.array_equal(archive['time_s'],data.t*data.e.coords.dt)):
+                    raise ValueError('Native coverage artifact grid/source mismatch')
+                coverage=assess_pixels(data,archive['prediction'])
+                parent=primary.get('selection_review',{}).get('pre_simplification_full_row')
+                if parent:
+                    row['native_simplification_guard']=residual_degradation(data,parent,archive['prediction'])
+            row['native_peak_coverage']=coverage
+            if not coverage['passed'] or not row.get('native_simplification_guard',{}).get('passed',True):
+                # The unique generated worker artifact is not a sealed run.
+                # The coordinator must not publish an inadequate prediction.
+                Path(prediction_path).unlink(missing_ok=True)
+                row['status']='unresolved'
+                row['reasons']=list(row.get('reasons',[]))+['Stored native reconstruction fails peak coverage or residual-preservation guard']
+                row['prediction_rejected']=True
+                row.pop('prediction',None)
+                row.pop('prediction_sha256',None)
     row["seconds"] = time.monotonic() - started
     return row

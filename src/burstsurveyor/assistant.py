@@ -1,6 +1,7 @@
 """Assistant inspection, bounded proposals and the reviewed reconstruction report."""
 
 import csv
+import gc
 import io
 import os
 from pathlib import Path
@@ -34,16 +35,17 @@ def _raw(inputs, event):
     return source
 
 
-def _policy(workers, auto_rescue=True):
+def _policy(workers, auto_rescue=True, mode="bounded"):
     return {
         "schema_version": 1,
         "workers": workers,
         "auto_rescue": auto_rescue,
+        "mode": mode,
         "maximum_challenges_per_event": 1,
         "review_sources": {
             n: sha256(Path(__file__).with_name(n))
             for n in ("assistant.py", "diagnostics.py", "review.py", "secondlook.py",
-                      "spectral_review.py", "component_review.py")
+                      "spectral_review.py", "component_review.py", "triage.py")
         },
     }
 
@@ -51,7 +53,7 @@ def _policy(workers, auto_rescue=True):
 def _check_session(ws):
     policy = read(ws / "session.json")
     _check(
-        policy == _policy(policy.get("workers"), policy.get("auto_rescue"))
+        policy == _policy(policy.get("workers"), policy.get("auto_rescue"), policy.get("mode", "bounded"))
         and policy["workers"] == read(ws / "fit/manifest.json")["workers"],
         "Assistant policy, source or sealed worker count changed",
     )
@@ -131,6 +133,7 @@ def _packet(ws, event, source, folder, flags, attempt=None, *, retry=False):
                     figure = (folder / "figure.png").relative_to(ws).as_posix()
                     inspection = "figure_ready"
                     del data, signal
+                    gc.collect()
             except (MemoryError, RuntimeError) as exc:
                 if not isinstance(exc, MemoryError) and "available memory" not in str(
                     exc
@@ -238,7 +241,32 @@ def _index(ws, summary):
     )
 
 
-def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True):
+def _review_queue(ws, summary):
+    """Use the latest inspected selection, including a rejected rescue's follow-up."""
+    from .triage import publish
+
+    if (ws / "report-seal.json").exists():
+        _check(all(sha256(ws / name) == digest for name, digest in read(ws / "report-seal.json").items()),
+               "Changed final assistant report seal")
+
+    rows = []
+    for event in summary["events"]:
+        root = ws / "review" / event["id"]
+        if (root / "followup").is_dir():
+            packet, desc = _open_packet(ws, event, root / "followup")
+        else:
+            packet, desc = _base(ws, event)
+        # Queue paths are relative to review/, unlike packet paths relative to ws.
+        row = {**packet, "packet": str(Path(desc["packet"]).relative_to("review")).replace("\\", "/"),
+               "packet_sha256": desc["packet_sha256"],
+               "figure": str(Path(packet["figure"]).relative_to("review")).replace("\\", "/") if packet["figure"] else None}
+        if (root / "decision.json").exists():
+            row["assessment"] = read(root / "decision.json")["action"]
+        rows.append(row)
+    return publish(ws / "review", rows, dict(baseline_seal_sha256=sha256(ws / "fit/seal.json"), session_sha256=sha256(ws / "session.json")))
+
+
+def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True, mode="bounded"):
     """Produce the sealed fit and evidence packets for assistant inspection."""
     inputs, ws = Path(inputs).resolve(), Path(workspace).resolve()
     if not resume:
@@ -246,7 +274,7 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True):
     elif not (ws / "session.json").is_file():
         raise ValueError("Resume needs the original assistant workspace")
     with run_lock(ws):
-        policy = _policy(workers, auto_rescue)
+        policy = _policy(workers, auto_rescue, mode)
         if resume:
             _check(
                 read(ws / "session.json") == policy,
@@ -260,6 +288,7 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True):
             workers=workers,
             resume=(ws / "fit/manifest.json").is_file(),
             defer_memory=True,
+            mode=mode,
         )
         flags = {row["id"]: row["flags"] for row in queue(ws / "fit", summary)}
         index_path = ws / "review/index.json"
@@ -315,7 +344,7 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True):
                     )
         if old != index:
             write(index_path, index)
-        if auto_rescue:
+        if auto_rescue and mode == "bounded":
             for event in summary["events"]:
                 _automatic_challenge(ws, inputs, event, summary)
         followups = []
@@ -336,12 +365,15 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True):
                             .as_posix(),
                         )
                     )
+        ranked_queue = _review_queue(ws, summary)
         return dict(
             workspace=str(ws),
             inputs=summary["inputs"],
             exported=summary["exported"],
             index=str(index_path),
             followups=followups,
+            review_queue=ranked_queue,
+            rescue_note="One guarded rescue per event." if mode == "bounded" else "This selection mode uses its internal guarded search; legacy automatic/manual challenges are unavailable. Persistent warnings require review or a separate manual refit.",
             pending=[
                 e["id"]
                 for e in summary["events"]
@@ -418,6 +450,8 @@ def _proposal(action, event, shape):
 
 def _challenge(ws, source, event, action, summary, flags):
     root = ws / "review" / event["id"]
+    _check(read(ws / "session.json").get("mode", "bounded") == "bounded",
+           "Challenges require bounded mode; inspect this event and use a separate manual refit")
     _check(
         event["status"] in {"provisional", "unresolved"},
         "This event cannot be challenged",
@@ -536,10 +570,11 @@ def decide(workspace, inputs, decision):
                 )
                 write(path, action)
             done.append(dict(id=event["id"], action=action["action"], pending=None))
-        return dict(decisions=done)
+        return dict(decisions=done, review_queue=_review_queue(ws, summary))
 
 
 def _report_row(ws, event, summary):
+    from .triage import assess
     root = ws / "review" / event["id"]
     baseline, initial = _base(ws, event)
     request = root / "challenge.json"
@@ -584,6 +619,7 @@ def _report_row(ws, event, summary):
         figure=packet["figure"],
         flags=packet["flags"],
         diagnostics=packet["diagnostics"],
+        triage=assess(packet),
         inspection_status=packet["inspection_status"],
         inspection_reason=packet["inspection_reason"],
         baseline_packet=initial["packet"],
@@ -612,6 +648,11 @@ def finish(workspace):
         ]
         _check(not missing, "Pending assistant assessments: " + ", ".join(missing))
         rows = [_report_row(ws, event, summary) for event in summary["events"]]
+        _review_queue(ws, summary)
+        for row in rows:
+            row["review_priority"] = row["triage"]["priority"]
+            row["review_disposition"] = row["triage"]["disposition"]
+            row["review_reasons"] = "; ".join(r["code"] for r in row["triage"]["reasons"])
         report = dict(
             schema_version=1,
             baseline_seal_sha256=sha256(ws / "fit/seal.json"),
@@ -636,6 +677,9 @@ def finish(workspace):
             "prediction",
             "figure",
             "challenge_reason",
+            "review_priority",
+            "review_disposition",
+            "review_reasons",
         )
         writer = csv.DictWriter(table, fieldnames=fields)
         writer.writeheader()
@@ -663,6 +707,10 @@ def finish(workspace):
                 "review/index.json",
                 "session.json",
                 "fit/seal.json",
+                "review/queue.json",
+                "review/queue.csv",
+                "review/review.html",
+                "review/queue-seal.json",
             )
         }
         if (ws / "report-seal.json").exists():

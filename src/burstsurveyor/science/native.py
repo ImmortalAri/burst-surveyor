@@ -262,6 +262,9 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
     Filesystem errors propagate so the coordinator cannot seal an incomplete run.
     Use a unique per-event .npz destination with an existing parent directory.
     """
+    if selected and selected.get('model') == 'channel-amplitudes-v1':
+        from .scintillation_native import finalize_profiled
+        return finalize_profiled(data, selected, prediction_path, source_sha256)
     start = time.perf_counter()
     stage_seconds = dict(
         incumbent_render_seconds=0.0,

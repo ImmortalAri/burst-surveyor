@@ -418,6 +418,8 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
     if output == run or run in output.parents:
         raise ValueError("Use a second-look output outside the sealed run")
     summary = verify(run)
+    if read(run / 'manifest.json')['method']['policy']['mode'] != 'bounded':
+        raise ValueError('Scintillation mode does not support bounded second-look rescue; leave persistent residuals for review')
     if isinstance(proposal, (Path, str)) and Path(proposal).stat().st_size > 65536:
         raise ValueError("A proposal JSON file must be 64 KiB or smaller")
     packet = read(Path(proposal)) if isinstance(proposal, (Path, str)) else proposal

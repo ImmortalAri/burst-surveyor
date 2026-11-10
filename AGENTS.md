@@ -8,7 +8,11 @@ python -m burstsurveyor doctor
 python -m burstsurveyor prepare INPUTS WORK
 ```
 
-Resume with the same arguments and `--resume`. `prepare` attempts one guarded rescue when a positive temporal residual repeats across channel splits. Read its returned follow-ups first, then the index. Open every selected packet and figure relative to `WORK`. Compare profiles and inspect residuals across channels. Record the time, frequency range and sign of coherent features.
+Resume with the same arguments and `--resume`. `prepare` attempts one guarded rescue when a positive temporal residual repeats across channel splits. Open the HTML path returned in `review_queue` (`WORK/review/review.html`); work from highest priority down, using the latest packet hash in `review/queue.json`. The original index retains initial packet hashes. Inspect accepted and rejected follow-ups, then every remaining event. Open every selected packet and figure locally. Compare profiles and inspect residuals across channels. Record the time, frequency range and sign of coherent features.
+
+Priority is an inspection order, not an error probability or an automatic decision. A tentative positive window may be faint emission, interference or a shape error. A negative window can mean a filled trough, incorrect width or scattering; adding a pulse may not fix it. Do not equate component count with physical pulse count. Parameter warnings identify resolution/crop sensitivity, not measured instability. Routine events still need inspection. An unavailable figure or diagnostic must never receive `retain`.
+
+The default `--mode bounded` preserves the stable fitter. `--mode combined` and `--mode scintillation` are experimental alternatives with internal bounded searches; automatic/manual external challenges are unsupported there. Leave persistent issues `review` and propose a separate manual refit. Do not consume a challenge by repeatedly resubmitting a warning.
 
 Component count is not peak count: overlapping components can describe different frequency bands. Inspect the component table. `broad_edge_component` or `spectral_model_limited` requires `review`. A horizontal off-burst trend is not an extra pulse. The pipeline screens contaminated mask neighbors from off-burst evidence; it never expands every gap. Frequency-amplitude residuals require spectral review, not more temporal components. These diagnostics do not establish physical components.
 
@@ -34,3 +38,5 @@ python -m burstsurveyor finish WORK
 ```
 
 Return the verified `report.csv`, `report.json` and figures. Count exports and unavailable fits. Identify challenges, persistent residuals and any missed inspections.
+
+For an already sealed numerical run, `python -m burstsurveyor triage RUN INPUTS NEW_OUTPUT` generates a local ranked queue without fitting. It is a diagnostic audit, not a completed human assessment. Never upload raw observations, reference fits, local reports, private paths or experiment history into the public repository or its documentation.
