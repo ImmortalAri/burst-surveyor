@@ -1,42 +1,46 @@
-# Fit a batch
+# Fit and review a batch
 
-Use a fresh 64-bit Python 3.12 environment: it is the tested CI runtime; 3.13 is allowed by packaging but unverified. `INPUTS` is one [NPZ](docs/reference.md) or a directory. Supply an unused path for `WORK`. Keep raw NPZ files on this machine; do not upload or attach them to chats. Inspect generated figures with local file tools.
+This is the complete default workflow. Consult linked docs only when an input, diagnostic or optional mode needs explanation.
+
+Use a fresh 64-bit Python 3.12 environment. `INPUTS` is one [NPZ](docs/reference.md) or a directory; `WORK` is an unused path. Keep observations and reports local and respect the resource guards.
 
 ```sh
 python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
 python -m burstsurveyor doctor
-python -m burstsurveyor prepare INPUTS WORK
+python -m burstsurveyor prepare INPUTS WORK --workers 1
 ```
 
-Resume with the same arguments and `--resume`. `prepare` attempts one guarded rescue when a positive temporal residual repeats across channel splits. Open the HTML path returned in `review_queue` (`WORK/review/review.html`); work from highest priority down, using the latest packet hash in `review/queue.json`. The original index retains initial packet hashes. Inspect accepted and rejected follow-ups, then every remaining event. Open every selected packet and figure locally. Compare profiles and inspect residuals across channels. Record the time, frequency range and sign of coherent features.
+Resume interrupted preparation with identical arguments and `--resume`. Keep the default bounded mode unless another mode was requested. `prepare` can attempt one guarded rescue for a likely missing pulse.
 
-Alerts target likely missing components. Missing exports or inspections have a separate unavailable workflow status. Other diagnostic notes are informational and do not force review. Priority is an inspection order, not an error probability or an automatic decision. A tentative positive window may be faint emission, interference or a shape error. A negative window can mean a filled trough, incorrect width or scattering; adding a pulse may not fix it. Do not equate component count with physical pulse count. Parameter warnings identify resolution/crop sensitivity, not measured instability. Routine events still need inspection. An unavailable figure or diagnostic must never receive `retain`.
+## Inspect
 
-The default `--mode bounded` preserves the stable fitter. `--mode combined` and `--mode scintillation` are experimental alternatives with internal bounded searches; automatic/manual external challenges are unsupported there. Leave persistent issues `review` and propose a separate manual refit. Do not consume a challenge by repeatedly resubmitting a warning.
+Open `WORK/review/review.html` and work from highest priority down. For every event, open the current packet, selected figure and component table. Inspect the observed spectrum, fitted reconstruction, residuals and pulse profile, including routine events and accepted or rejected follow-ups. Record the time, frequency range and sign of coherent residual features.
 
-Component count is not peak count: overlapping components can describe different frequency bands. Inspect the component table. A persistent possible_missing_component alert requires review. Broad/crop-sensitive components, sub-bin widths, spectral limitations and budget notes remain informational; retain a reconstruction when observed pulse coverage supports it and record parameter limitations separately. A horizontal off-burst trend is not an extra pulse. The pipeline screens contaminated mask neighbors from off-burst evidence; it never expands every gap. Frequency-amplitude residuals require spectral review, not more temporal components. These diagnostics do not establish physical components.
+Use the latest packet hash in `review/queue.json`; the original index retains initial hashes. An unavailable export, figure or diagnostic cannot receive `retain`. A persistent missing-component alert requires `review`. Spectral mismatch, broad or sub-bin components, crop sensitivity and parameter limits are informational and do not by themselves require another component. Overlapping model terms are not necessarily separate physical pulses, and a negative residual is not evidence for another pulse.
 
-Write `decisions.json` as an object or array. Copy `id`, `source_sha256` and `packet_sha256` from the index. Add an `observation` stating the evidence and one `action`.
+## Decide and finish
+
+Write `decisions.json` as an object or array. Each entry contains `id`, `source_sha256`, `packet_sha256`, `action` and an `observation` describing the inspection evidence.
 
 | Action | Use |
 |---|---|
-| `retain` | Profiles and spectrum support the exported fit. |
-| `review` | Ambiguous structure, a model limitation, or a figure you cannot inspect. |
-| `unresolved` | No model was exported. Record the reason. |
-| `challenge` | A positive residual at a distinct time spans neighboring channels. Add `time_bins` and `channel_bins` as zero-based `[start, stop)` intervals on the original grid. Account for the sign of `res_freq`. |
+| `retain` | The reconstruction covers the observed pulse structure. |
+| `review` | Structure remains ambiguous or an inspection is unavailable. |
+| `unresolved` | No model was exported; record why. |
+| `challenge` | A distinct positive temporal residual spans neighboring channels. |
+
+A challenge also needs `time_bins` and `channel_bins` as zero-based `[start, stop)` intervals on the original grid; account for the sign of `res_freq`. At most one challenge is allowed per event, including automatic rescue. Spectral mismatch alone does not justify one.
 
 ```sh
 python -m burstsurveyor decide WORK INPUTS decisions.json
 ```
 
-An automatic rescue requires replicated missing observed morphology, not spectral mismatch or an in-pulse shape residual alone. One challenge per event, including automatic rescue. Inspect the follow-up, including rejected trials. Submit a terminal action with its **returned** `packet_sha256`; the index retains the initial hash. Persistent missing morphology after that attempt stays `review`. Do not keep adding components until the residual looks quiet.
-
-Finish when every event has a terminal decision.
+After a challenge, inspect its result even if rejected and submit a terminal action with the returned packet hash. Leave persistent problems `review` rather than repeating challenges. When every event has a terminal decision:
 
 ```sh
 python -m burstsurveyor finish WORK
 ```
 
-Return the verified `report.csv`, `report.json` and figures. Count exports and unavailable fits. Identify challenges, persistent residuals and any missed inspections.
+Return verified `report.csv`, `report.json`, decisions and figures. Count exports, challenges, unresolved or unavailable cases, and missed inspections. Never publish raw observations, reference fits, local reports, private paths or experiment history without explicit user authorization.
 
-For an already sealed numerical run, `python -m burstsurveyor triage RUN INPUTS NEW_OUTPUT` generates a local ranked queue without fitting. It is a diagnostic audit, not a completed human assessment. Never upload raw observations, reference fits, local reports, private paths or experiment history into the public repository or its documentation.
+For an existing sealed run, see [triage](docs/review-queue.md). Experimental [selection modes](docs/selection.md) have internal searches and do not support external challenges.

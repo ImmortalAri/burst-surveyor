@@ -1,76 +1,32 @@
 # Using burst surveyor
 
-Burst Surveyor provides an AI-assisted workflow around FitBurst: fit local dedispersed observations, inspect the results, attempt bounded follow-ups, and return verified reports. [AGENTS.md](../AGENTS.md) is the authoritative workflow for coding agents. The [README](../README.md) explains how to hand the repository to a coding agent.
+Give your coding agent the repository, a folder of dedispersed observations and a new working directory, then ask it to follow [AGENTS.md](../AGENTS.md). That file contains the installation commands and full workflow; the agent does not need to read every document or source file before starting.
 
-## Install and prepare
+## Results
 
-From the repository root, inside a fresh 64-bit Python 3.12 environment:
+The agent fits each event, inspects its spectrum, pulse profile and residuals, and attempts a permitted rescue when a pulse appears to be missing. It then returns the following local outputs.
 
-```sh
-python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
-python -m burstsurveyor doctor
-python -m burstsurveyor prepare INPUTS WORK --workers 1
-```
-
-`INPUTS` is one dedispersed [NPZ file](reference.md) or a directory. `WORK` must be an unused directory. Follow the package's worker and memory guards. Resume an interrupted preparation with the same arguments and `--resume`.
-
-## What the agent does
-
-1. Fits the observations and exports native-grid reconstructions.
-2. Opens every selected figure and component table, checking the observed spectrum, pulse profile, model and residuals.
-3. Inspects any follow-up, including rejected trials, and records an explicit decision for each event.
-4. Finishes with verified reports and identifies cases needing human attention.
-
-The local review queue is `WORK/review/review.html`. Missing fits or unavailable inspections appear first, followed by likely missed-component alerts. Other diagnostic notes remain informational. Routine events still require the agent's visual review; the queue does not guarantee that every pulse was found.
-
-The stable default permits at most one guarded temporal rescue per event. An alert requires replicated missing observed morphology across channel folds, rather than spectral mismatch or an in-pulse shape residual alone. Persistent or ambiguous problems remain marked for review. See [priority definitions](review-queue.md).
-
-The agent writes decisions using the current packet hashes, then runs:
-
-```sh
-python -m burstsurveyor decide WORK INPUTS decisions.json
-python -m burstsurveyor finish WORK
-```
-
-Follow-up packets have new hashes. Use the returned hash for the terminal decision; the original index retains the initial one. Full decision fields and stopping rules are in [AGENTS.md](../AGENTS.md).
-
-## Outputs
-
-| Output | Purpose |
+| Output | Contents |
 |---|---|
-| `review/review.html` | Ranked figures and diagnostic notes |
-| Figures | Profiles, observed spectra, reconstructions and residuals |
-| `decisions.json` | Inspection evidence bound to input and packet hashes |
-| `report.csv`, `report.json` | Verified event dispositions and results |
+| `review/review.html` | Ranked figures, component tables and diagnostic notes |
+| Figures | Observed spectra, fitted reconstructions, profiles and residuals |
+| `decisions.json` | Inspection evidence linked to the input and fit hashes |
+| `report.csv`, `report.json` | Verified results and review decisions |
 
-Observations, reference files and generated reports remain local. Selected real-burst illustrations appear in the README; raw observations and human-reference parameter files are not bundled with those figures.
+Missing fits and unavailable inspections come first in the queue, followed by possible missed components. Other notes are informational. The agent still inspects routine events and leaves persistent or ambiguous problems marked for review, so you can concentrate on cases that need attention.
 
-## Scores and interpretation
+## Interpreting a fit
 
-`gain` measures the reduction in weighted squared error relative to a constant baseline per channel. `rms_gain` uses alternate RMS weights. A follow-up must pass a separate channel check and improve both scores on the exported pixels. A higher gain alone does not establish another physical pulse.
+The default bounded mode allows at most one temporal rescue per event. A frequency-amplitude mismatch alone does not request another pulse, and a component count is not a count of physical pulses. Intrinsic width, residual DM, scattering and overlapping components can describe similar reconstructions, so retaining a fit does not establish a unique physical interpretation or reliable parameter uncertainties.
 
-Overlapping model terms can describe different frequency bands or trade off with intrinsic width, residual DM and scattering. Component count need not equal peak count. Sub-bin widths, broad components, crop sensitivity and spectral limitations receive informational notes; these do not measure parameter stability or replace uncertainty analysis. Retaining a reconstruction does not certify a unique physical interpretation.
+### Scores and interpretation
 
-## Selection modes and existing runs
+`gain` is the reduction in weighted squared error relative to a constant baseline per channel. `rms_gain` uses alternate RMS weights. A follow-up must pass a separate channel check and improve both scores on the exported pixels; a higher gain alone does not establish another physical pulse.
 
-The default `--mode bounded` preserves the stable fitter. The optional `--mode combined` compares smooth and flexible spectral amplitudes using predictive parsimony and replicated pulse coverage. `--mode scintillation` offers flexible spectral amplitudes without that combined coverage search. Both alternatives are experimental and can change DM, scattering and widths. They use internal bounded searches; external challenges are supported only in bounded mode. See [selection modes](selection.md).
+## Further details
 
-To generate a review queue for a sealed numerical run without repeating fits:
+- [Input format and exported arrays](reference.md)
+- [Review priorities and triage of existing runs](review-queue.md)
+- [Optional experimental selection modes](selection.md)
 
-```sh
-python -m burstsurveyor triage RUN INPUTS NEW_OUTPUT
-```
-
-This is a diagnostic audit, not a completed assessment.
-
-## Synthetic controls
-
-These small bundled inputs exercise the workflow. They complement the real observations shown in the README.
-
-**Seven pulses.** A control for pulse coverage and guarded rescue. [Input NPZ](../examples/seven-pulse.npz).
-
-![Seven synthetic pulses: reconstruction and residuals](../examples/seven-pulse.png)
-
-**Two pulses.** A simple reconstruction control. [Input NPZ](../examples/two-pulse.npz).
-
-![Two synthetic pulses: reconstruction and residuals](../examples/two-pulse.png)
+If preparation is interrupted, the agent can resume with the same arguments and `--resume`. Observations and generated reports stay local. The README shows real observations and a synthetic rescue example; the bundled [two-pulse](../examples/two-pulse.npz) and [seven-pulse](../examples/seven-pulse.npz) inputs are available as small controls.
