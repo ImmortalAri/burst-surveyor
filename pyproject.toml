@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "burst-surveyor"
 version = "0.0.0"
-description = "FitBurst reconstruction of dedispersed radio bursts"
+description = "AI-assisted FitBurst fitting and review of dedispersed radio bursts"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "vendor/NOTICE.md", "vendor/FITBURST-LICENSE.txt"]
@@ -37,4 +37,4 @@ burstsurveyor = ["science/*.json", "data/*.json"]
 
 [tool.setuptools.data-files]
 "share/burst-surveyor" = ["AGENTS.md"]
-"share/burst-surveyor/docs" = ["docs/reference.md", "docs/review-queue.md", "docs/selection.md"]
+"share/burst-surveyor/docs" = ["docs/reference.md", "docs/review-queue.md", "docs/selection.md", "docs/guide.md"]

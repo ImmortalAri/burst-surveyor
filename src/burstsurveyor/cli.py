@@ -9,7 +9,7 @@ import sys
 def _parser():
     parser = argparse.ArgumentParser(
         prog="burstsurveyor",
-        description="Prepare burst fits for inspection, record decisions, and verify the reviewed reconstruction.",
+        description="AI-assisted FitBurst fitting: prepare reconstructions, record reviews, and verify the results.",
     )
     sub = parser.add_subparsers(
         dest="command", required=True, metavar="{prepare,decide,finish,doctor}"

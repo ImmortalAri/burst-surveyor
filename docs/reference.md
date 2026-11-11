@@ -16,4 +16,4 @@
 
 Modeled intensity is `prediction + baseline[:, None]` on the original pixels. The NPZ includes channel and off-burst masks, channel variances, frequency centres in MHz and `time_s` relative to the first sample.
 
-For score definitions, see [gain](../README.md). A follow-up must pass a separate channel check and improve both scores on the exported pixels. Component counts remain provisional.
+For score definitions, see [scores and interpretation](guide.md#scores-and-interpretation). A follow-up must pass a separate channel check and improve both scores on the exported pixels. Component counts remain provisional.
