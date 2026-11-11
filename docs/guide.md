@@ -1,6 +1,6 @@
-# Running Burst Surveyor
+# Using burst surveyor
 
-Burst Surveyor provides an AI-assisted workflow around FitBurst: fit local dedispersed observations, inspect the results, attempt bounded follow-ups, and return verified reports. [AGENTS.md](../AGENTS.md) is the authoritative workflow for coding agents. The [README](../README.md) contains a ready-to-paste handoff prompt.
+Burst Surveyor provides an AI-assisted workflow around FitBurst: fit local dedispersed observations, inspect the results, attempt bounded follow-ups, and return verified reports. [AGENTS.md](../AGENTS.md) is the authoritative workflow for coding agents. The [README](../README.md) explains how to hand the repository to a coding agent.
 
 ## Install and prepare
 

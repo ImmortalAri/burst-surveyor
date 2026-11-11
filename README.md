@@ -1,35 +1,23 @@
-# Burst Surveyor
+# burst surveyor
 
-**AI-assisted FitBurst fitting, run by your coding agent.**
+burst surveyor fits dedispersed radio bursts with FitBurst, using a coding agent to run the fitting and review workflow. Give your agent this repository and your observations, and ask it to follow [AGENTS.md](AGENTS.md).
 
-Give your agent a folder of dedispersed burst observations. It runs the fits, inspects the profiles and residuals, attempts permitted rescues, and returns figures and verified reports. You get a ranked queue of events that may need attention.
+The examples below show the observed pulse profile and spectrum alongside the fitted reconstruction and residuals. A human reference is included where available.
 
-## Give this to your agent
+### FRB 20190412A
 
-Replace the two paths and paste this into your coding agent:
+![FRB 20190412A pulse profile, observed spectrum, fitted reconstruction and residuals](examples/frb20190412a.png)
 
-```text
-Use https://github.com/ImmortalAri/burst-surveyor and follow AGENTS.md.
-Set up a fresh Python 3.12 environment.
+### Event 156410110
 
-Inputs: /absolute/path/to/my/npz-files
-Work: /absolute/path/to/a/new/run
+![Event 156410110 pulse profile with a human reference, observed spectrum, fitted reconstruction and residuals](examples/real-multipulse.png)
 
-Complete the fitting and visual-review workflow, including permitted
-follow-ups. Return verified report.csv, report.json, decisions and figures.
-Leave persistent or ambiguous problems marked for review.
-```
+### Seven pulses
 
-Observations and reports stay local. See the [input format](docs/reference.md), [agent instructions](AGENTS.md), and [detailed guide](docs/guide.md).
+A synthetic example after a follow-up fit recovered a missed pulse.
 
-## Real bursts
+![Seven synthetic pulses after a follow-up fit, showing the pulse profile, observed spectrum, reconstruction and residuals](examples/seven-pulse.png)
 
-**FRB 20190412A — overlapping peaks and a long tail.**
+The agent inspects each fit and returns figures and verified reports, leaving persistent or ambiguous problems marked for review so that you can focus on the events that need attention. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
 
-![Real burst FRB 20190412A: observed pulse profile, fitted reconstruction, spectrum and residuals](examples/frb20190412a.png)
-
-**Event 156410110 — a train of sharp peaks with overlapping tails.** The human reference is overlaid on the pulse profile for context.
-
-![Real multipulse burst: observed profile with AI-assisted FitBurst and human reference curves, observed spectrum, fitted reconstruction and residuals](examples/real-multipulse.png)
-
-Model components need not correspond to separate physical pulses. The agent reviews every exported fit; persistent problems remain visible for your inspection.
+Observations and generated reports stay local, and the [guide](docs/guide.md) explains the [input format](docs/reference.md), installation and fitting workflow in more detail.
