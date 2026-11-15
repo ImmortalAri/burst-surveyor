@@ -2,7 +2,7 @@
 
 burst surveyor fits dedispersed radio bursts and folded pulsar profiles with FitBurst. Give your coding agent this repository and your observations, and ask it to follow [AGENTS.md](AGENTS.md).
 
-The examples below show the observed pulse profile and spectrum alongside the fitted reconstruction and residuals. A human reference is included where available.
+The examples below show the observed pulse profile and spectrum alongside the fitted reconstruction and residuals. 
 
 ### FRB 20190412A
 
