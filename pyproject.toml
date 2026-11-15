@@ -5,12 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "burst-surveyor"
 version = "0.0.0"
-description = "AI-assisted FitBurst fitting and review of dedispersed radio bursts"
+description = "AI-assisted FitBurst fitting and review of radio bursts and folded pulsar profiles"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "vendor/NOTICE.md", "vendor/FITBURST-LICENSE.txt"]
 requires-python = ">=3.12,<3.14"
-keywords = ["fast radio bursts", "dynamic spectra", "fitburst", "radio astronomy"]
+keywords = ["fast radio bursts", "pulsars", "dynamic spectra", "fitburst", "radio astronomy"]
 dependencies = [
   "fitburst~=0.1.0",
   "numpy~=2.2.6",

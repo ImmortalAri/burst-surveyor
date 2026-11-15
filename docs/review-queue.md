@@ -1,17 +1,26 @@
 # Review queue
 
-Alerts target likely missing components. Other diagnostics are information and do not force review.
+Alerts target likely missing components. Other diagnostics are informational.
 
 | Status | Meaning |
 |---|---|
-| Unavailable | No export, or a native figure/diagnostic inspection could not be completed. A separate workflow failure. |
-| Rescue | A replicated resolved observed peak lacks a nearby modeled peak and leaves repeated positive residuals. Inspect for omitted emission or interference. |
-| Routine | No missing-component alert found. Inspect the reconstruction; physical parameter accuracy is not certified. |
+| Unavailable | A fit, figure or diagnostic could not be produced. |
+| Rescue | A resolved observed peak lacks a nearby modeled peak and leaves positive residuals in both channel folds. Inspect for omitted emission or interference. |
+| Routine | No missing-component alert found. Visual inspection is still required. |
 
-The native prominence screen uses full/half/quarter channel bands, multiple smoothing scales, observed peak/trough contrasts, off-burst noise and frequency-correlation inflation. A feature requires pooled prominence at least6 and contrast at least3 in both channel folds. An omission must lose at least half the local contrast and at least6 noise units. A nearby model peak with prominence at least20% of observed contrast within two smoothing scales (minimum two bins) counts as represented. An alert also requires amplitude-profiled positive residual scores at least3 in both folds. These conditional screening scores are not calibrated significances. Narrow-band, faint or unusual structure can be missed.
+The screen checks multiple frequency bands and smoothing scales, allowing for off-burst noise and channel correlations. These are conditional screening scores, not calibrated significances. Faint, narrowband or unusual structure can be missed. The implementation defines the [peak-coverage](../src/burstsurveyor/science/pulse_coverage.py) and [alert](../src/burstsurveyor/triage.py) thresholds.
 
-Spectral mismatch, negative/weak residuals, crop sensitivity, broad/sub-bin components, parameter bounds, noise concerns and fit budgets appear in a collapsed information panel. They can affect parameter interpretation without requiring another temporal component. A visually adequate reconstruction can be retained while recording these limitations. A persistent possible-missing-component alert requires review.
+Spectral mismatch, negative or weak residuals, broad or sub-bin components, parameter bounds, noise concerns and fitting budgets appear in a collapsed information panel. They can affect interpretation without requiring another component. A visually adequate reconstruction can be retained with these limitations; a persistent missing-component alert requires review.
 
-The local review/review.html, queue.json and queue.csv include every event and the latest selected follow-up, including rejected rescues. One external rescue is allowed in bounded mode. Explicit assessments remain separate from automatic priority and bound to input/packet hashes.
+`review/review.html`, `queue.json` and `queue.csv` include every event and its latest fit, including rejected rescues. Explicit inspection decisions are separate from automatic priority and linked to input and packet hashes.
 
-An existing sealed numerical run can be diagnosed without refitting: triage RUN INPUTS OUTPUT. Resume with identical sources and --resume; resource-limited inspections can recover without overwriting initial evidence. Verify using triage-verify OUTPUT --run RUN. Hash verification checks integrity, not scientific correctness. HTML uses no external assets or server.
+## Existing runs
+
+Diagnose a sealed numerical run without refitting:
+
+```sh
+python -m burstsurveyor triage RUN INPUTS OUTPUT
+python -m burstsurveyor triage-verify OUTPUT --run RUN
+```
+
+Resume with identical sources and `--resume` to retry resource-limited inspections without overwriting initial evidence. Hash verification checks integrity, not scientific correctness. The HTML requires no server or external assets.
