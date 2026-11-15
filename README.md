@@ -1,8 +1,6 @@
 # burst surveyor
 
-burst surveyor fits dedispersed radio bursts with FitBurst, using a coding agent to run the fitting and review workflow. Give your agent this repository and your observations, and ask it to follow [AGENTS.md](AGENTS.md).
-
-For folded pulsar observations, ask for [pulsar mode](docs/selection.md#pulsar-profiles), which fits one complete rotation and handles emission across the phase boundary.
+burst surveyor fits dedispersed radio bursts and folded pulsar profiles with FitBurst. Give your coding agent this repository and your observations, and ask it to follow [AGENTS.md](AGENTS.md).
 
 The examples below show the observed pulse profile and spectrum alongside the fitted reconstruction and residuals. A human reference is included where available.
 
@@ -23,3 +21,15 @@ A synthetic example after a follow-up fit recovered a missed pulse.
 The agent inspects each fit and returns figures and verified reports, leaving persistent or ambiguous problems marked for review so that you can focus on the events that need attention. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
 
 Observations and generated reports stay local, and the [guide](docs/guide.md) explains the [input format](docs/reference.md), installation and fitting workflow in more detail.
+
+## Pulsars
+
+[Pulsar mode](docs/selection.md#pulsar-profiles) fits one complete rotation, including emission across the phase boundary, and compares models with and without scattering.
+
+### J1849+0409
+
+![J1849+0409 pulse profile, observed spectrum, fitted reconstruction and residuals](examples/pulsar-j1849-0409.png)
+
+### J0824+0028
+
+![J0824+0028 pulse profile, observed spectrum, fitted reconstruction and residuals](examples/pulsar-j0824-0028.png)

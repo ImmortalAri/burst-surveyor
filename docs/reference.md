@@ -13,7 +13,7 @@
 | `is_dedispersed` | `true` |
 | `period_s` | Required only for pulsar mode: rotation period in seconds, matching `data_full.shape[1] * res_time` within relative tolerance 1e-9. |
 
-Pulsar mode expects one complete folded rotation. A cropped pulse, multiple consecutive rotations or an unfurled single-pulse observation should not be labeled as a complete rotation. Missing or incompatible period metadata is rejected rather than inferred from the fit.
+Pulsar mode expects one complete folded rotation. A cropped pulse, multiple consecutive rotations or an unfolded single-pulse observation should not be labeled as a complete rotation. Missing or incompatible period metadata is rejected rather than inferred from the fit.
 
 ## Export
 
@@ -21,4 +21,4 @@ Modeled intensity is `prediction + baseline[:, None]` on the original pixels. Th
 
 Pulsar search uses an internal circular phase origin, recorded as `phase_origin_bins`; exported pixels and fitted arrival times are restored to the original input phase. Internal review intervals crossing phase zero can extend beyond the last bin and are interpreted modulo the number of time bins. Intrinsic widths are Gaussian sigma; scattering timescales refer to 600 MHz.
 
-For score definitions, see [scores and interpretation](guide.md#scores-and-interpretation). A follow-up must pass a separate channel check and improve both scores on the exported pixels. Component counts remain provisional.
+See [scores and interpretation](guide.md#scores-and-interpretation) for the meaning and limits of exported scores and component counts.

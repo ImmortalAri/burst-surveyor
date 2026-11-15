@@ -45,4 +45,4 @@ python -m burstsurveyor finish WORK
 
 Return verified `report.csv`, `report.json`, decisions and figures. Count exports, challenges, unresolved or unavailable cases, and missed inspections. Never publish raw observations, reference fits, local reports, private paths or experiment history without explicit user authorization.
 
-For an existing sealed run, see [triage](docs/review-queue.md). Experimental [selection modes](docs/selection.md) have internal searches and do not support external challenges.
+For an existing sealed run, see [triage](docs/review-queue.md). Pulsar and experimental spectral [modes](docs/selection.md) use internal searches and do not support external challenges.
