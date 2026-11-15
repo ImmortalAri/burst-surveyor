@@ -73,7 +73,7 @@ class Coordinates:
         }
 
 
-def pulse(x, n, scatter, coords, channels, t, derivative=False):
+def _linear_pulse(x, n, scatter, coords, channels, t, derivative=False):
     """Predict on centres t in bin units. Truncate only at negligible tail mass."""
     n_freq, n_time = (len(coords.z[channels]), len(t))
     result = np.zeros((n_freq, n_time))
@@ -119,3 +119,32 @@ def pulse(x, n, scatter, coords, channels, t, derivative=False):
             if scatter:
                 jac[-1, :, a:b] += fluence * (hi[3] - lo[3])
     return (result, jac)
+
+
+def periodic_images(x, n, scatter, coords, channels, t):
+    """Period translations covering Gaussian10-sigma and exponential30-tau tails."""
+    period = getattr(coords, 'period_bins', None)
+    if period is None:
+        return range(0, 1)
+    parts = np.asarray(x[:5*n]).reshape(n, 5)
+    sigma = np.exp(parts[:, 2]).max()
+    delay = x[5*n] * coords.dispersion[channels]
+    tau = np.exp(x[-1]) * coords.tau_ratio[channels].max() if scatter else 0.
+    left = parts[:, 1].min() + delay.min() - 10*sigma
+    right = parts[:, 1].max() + delay.max() + 10*sigma + 30*tau
+    first = int(np.floor((left-t[-1]-.5)/period))
+    last = int(np.ceil((right-t[0]+.5)/period))
+    return range(first, last+1)
+
+
+def pulse(x, n, scatter, coords, channels, t, derivative=False):
+    period = getattr(coords, 'period_bins', None)
+    if period is None:
+        return _linear_pulse(x,n,scatter,coords,channels,t,derivative)
+    result = np.zeros((len(channels),len(t)))
+    jac = np.zeros((len(x),len(channels),len(t))) if derivative else None
+    for image in periodic_images(x,n,scatter,coords,channels,t):
+        value,gradient = _linear_pulse(x,n,scatter,coords,channels,t+image*period,derivative)
+        result += value
+        if derivative: jac += gradient
+    return result,jac

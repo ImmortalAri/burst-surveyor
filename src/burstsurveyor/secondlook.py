@@ -87,7 +87,10 @@ def _profile(data, ids, model):
     return profile / np.sqrt(len(ids))
 
 
-def _window_scores(profile, width):
+def _window_scores(profile, width, periodic=False):
+    length = len(profile)
+    if periodic:
+        profile = np.r_[profile, profile[:width-1]]
     summed = np.r_[0.0, np.cumsum(profile)]
     values = (summed[width:] - summed[:-width]) / np.sqrt(width)
     center = np.median(values)
@@ -115,7 +118,7 @@ def _discovery(data, train, signal, event):
             continue
         profile /= np.sqrt(count)
         for width in widths:
-            z = _window_scores(profile, width)
+            z = _window_scores(profile, width, bool(getattr(data, "c", {}).get("periodic")))
             start = int(np.argmax(z))
             if best is None or z[start] > best[0]:
                 best = float(z[start]), (int(lo), int(hi)), (start, start + width)
@@ -137,7 +140,7 @@ def _evidence(data, ids, model, packet):
     ii = ids[(ids >= lo) & (ids < hi)]
     if len(ii) < 3:
         return None
-    return float(_window_scores(_profile(data, ii, model), last - first)[first])
+    return float(_window_scores(_profile(data, ii, model), last-first, bool(getattr(data, "c", {}).get("periodic")))[first % data.e.length])
 
 
 def _gain(data, row, ids):

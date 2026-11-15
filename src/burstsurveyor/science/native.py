@@ -88,9 +88,16 @@ def _score(data, row, quadrature, pulse_fn, model_class, normalize_pbf, moments=
     tile = max(1, min(16, 250000 // (len(time_s) * n)))
     for start in range(0, len(data.indices), tile):
         ii = data.indices[start : start + tile]
-        parts = _components(
-            model_class, parameters, data.e.frequency[ii], time_s, n, quadrature
-        )
+        if getattr(data.e.coords, 'period_bins', None) is None:
+            parts = _components(model_class, parameters, data.e.frequency[ii], time_s, n, quadrature)
+        else:
+            from .model import periodic_images
+            period_s = data.e.coords.period_bins * data.e.coords.dt
+            parts = np.zeros((len(ii), len(time_s), n))
+            for image in periodic_images(x,n,row['scatter'],data.e.coords,ii,data.t):
+                translated = dict(parameters)
+                translated['arrival_time'] = [v-image*period_s for v in parameters['arrival_time']]
+                parts += _components(model_class, translated, data.e.frequency[ii], time_s, n, quadrature)
         signal = parts.sum(axis=2)
         prediction[ii] = signal
         stored = prediction[ii].astype(float)
@@ -326,7 +333,9 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
         narrowest = np.exp(min(row["x"][2 : 5 * n : 5]))
         quadrature = min(64, max(8, int(np.ceil(3 / max(0.01, narrowest)))))
         receipt.update(
-            quadrature=quadrature, native_model_passes=1, challenger_selected=False
+            quadrature=quadrature, native_model_passes=1, challenger_selected=False,
+            period_s=data.e.grid.get("period_s") if getattr(data.e.coords,"period_bins",None) else None,
+            periodic_model="sum of translated upstream FitBurst profiles" if getattr(data.e.coords,"period_bins",None) else None
         )
         moments = (np.zeros((2, n, n)), np.zeros((2, n)))
         fields = ("gain", "rms_gain")

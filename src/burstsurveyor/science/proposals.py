@@ -184,7 +184,7 @@ def _directions(d, row, cache):
                 "scatter": False,
             },
         }
-        at = p.start + p.width / 2
+        at = (p.start+p.width/2) % d.e.length if d.c.get("periodic") else p.start+p.width/2
         for width in sorted(set((max(2.0, p.width / 2.5), 12.0, 32.0))):
             directions["broad_" + str(width)] = {
                 "kind": "addition",
@@ -329,7 +329,7 @@ def propose(data, incumbent, deadline, source_sha256, residual_pair=None):
                     q,
                     label,
                     16,
-                    min(deadline, time.monotonic() + 8.0),
+                    deadline if data.c.get("periodic") else min(deadline, time.monotonic() + 8.0),
                 )
                 if time.monotonic() < deadline:
                     row = optimizer(
@@ -340,7 +340,7 @@ def propose(data, incumbent, deadline, source_sha256, residual_pair=None):
                         np.asarray(row["x"]),
                         label + "-native",
                         4,
-                        min(deadline, time.monotonic() + 8.0),
+                        deadline if data.c.get("periodic") else min(deadline, time.monotonic() + 8.0),
                     )
                 row["gain"], row["rms_gain"], row["energy"] = score(d, row)
                 candidates.append(

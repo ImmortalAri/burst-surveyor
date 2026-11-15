@@ -47,6 +47,11 @@ class Event:
             grid["freqs_bin0"] + (np.arange(len(raw)) + 0.5) * grid["res_freq"]
         )
         self.coords = Coordinates(self.frequency, grid["res_time"], self.frequency)
+        if config.get("periodic", False):
+            period = grid.get("period_s")
+            if period is None or not np.isclose(period, self.length * grid["res_time"], rtol=1e-9, atol=0):
+                raise InputError("Pulsar mode requires period_s matching one complete rotation")
+            self.coords.period_bins = float(self.length)
         self.group_size = max(1, int(np.ceil(len(raw) / config["frequency_groups"])))
 
     def tiles(self, indices, parameters=1):
@@ -189,10 +194,14 @@ class Data:
         good = np.zeros((nf, ntime), dtype=int)
         plane[np.ix_(self.group_labels, self.train)] = residual
         good[np.ix_(self.group_labels, self.train)] = 1
+        periodic = bool(self.c.get("periodic"))
+        if periodic:
+            plane = np.tile(plane, (1, 2))
+            good = np.tile(good, (1, 2))
         summed = np.pad(plane.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
         count = np.pad(good.cumsum(0).cumsum(1), ((1, 0), (1, 0)))
-        tcount = np.r_[0, self.train.cumsum()]
-        offcount = np.r_[0, self.noise_time.cumsum()]
+        tcount = np.r_[0, np.tile(self.train, 2 if periodic else 1).cumsum()]
+        offcount = np.r_[0, np.tile(self.noise_time, 2 if periodic else 1).cumsum()]
         pos = neg = None
         for band in sorted(set(min(nf, value) for value in self.c["bands"]) | {nf}):
             f0 = np.unique(
@@ -203,7 +212,7 @@ class Data:
             for width in self.c["widths"]:
                 if width > max(1, ntime // 3):
                     break
-                start = np.arange(0, ntime - width + 1)
+                start = np.arange(ntime if periodic else ntime-width+1)
                 stop = start + width
                 exposure = (
                     count[b, stop] - count[b, start] - count[a, stop] + count[a, start]
@@ -300,14 +309,15 @@ class Data:
 
     def component_seed(self, template):
         if template is None:
-            i = int(np.argmax(gaussian_filter1d(self.profile, 1)))
+            i = int(np.argmax(gaussian_filter1d(self.profile, 1, mode="wrap" if self.c.get("periodic") else "reflect")))
             return [np.log(self.fluence_scale * 3), self.t[i], np.log(1.5), 0.0, 0.0]
-        active = (self.t >= template.start) & (self.t < template.start + template.width)
+        offset = (self.t-template.start) % self.e.length if self.c.get("periodic") else self.t-template.start
+        active = (offset >= 0) & (offset < template.width)
         band = (self.group_labels >= template.first) & (
             self.group_labels < template.last
         )
         sigma = max(0.55, template.width / 2.5)
-        arrival = np.mean(self.t[active])
+        arrival = float((template.start+np.mean(offset[active])) % self.e.length) if self.c.get("periodic") else np.mean(self.t[active])
         # Frequency shape is seeded from the band centre, then fitted.
         z = self.e.coords.z[self.reps[band]]
         curvature = (
@@ -365,10 +375,13 @@ class Data:
         return (loss, gradient, gram)
 
 
-def optimizer(data, n, scatter, native, seed, name, iterations, deadline):
+def optimizer(data, n, scatter, native, seed, name, iterations, deadline, *, fixed_log_tau=None):
     """Damped native-compatible GN in emitting-band coordinates, with NNLS starts."""
     before = time.monotonic()
     lo, hi = data.bounds(n, scatter)
+    if fixed_log_tau is not None:
+        if not scatter or not np.isfinite(fixed_log_tau) or not lo[-1] <= fixed_log_tau <= hi[-1]:
+            raise ValueError("Fixed scattering timescale must lie inside the existing bounds")
     settings = data.c
     pivots = training_pivots(data, np.asarray(seed), n, scatter)
     transform = pivot_matrix(len(seed), n, pivots)
@@ -387,6 +400,8 @@ def optimizer(data, n, scatter, native, seed, name, iterations, deadline):
 
     def project(q):
         q = np.clip(q, qlo + 1e-09, qhi - 1e-09)
+        if fixed_log_tau is not None:
+            q[-1] = fixed_log_tau
         for i, zp in enumerate(pivots):
             zz = z - zp
             logs = q[5 * i] + q[5 * i + 3] * zz + q[5 * i + 4] * zz * zz
@@ -433,6 +448,8 @@ def optimizer(data, n, scatter, native, seed, name, iterations, deadline):
             gradient > 0
         )
         free = np.flatnonzero(~active)
+        if fixed_log_tau is not None:
+            free = free[free != len(q) - 1]
         g = gradient[free] * scale[free]
         if not len(g) or np.max(abs(g)) < settings["gradient_stop"]:
             message = "projected_gradient"

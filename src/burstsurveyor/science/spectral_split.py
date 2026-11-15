@@ -80,7 +80,7 @@ def _peak(d, profile, widths, window=None):
         radius = max(2, int(np.ceil(4 * sigma)))
         kernel = np.exp(-0.5 * (np.arange(-radius, radius + 1) / sigma) ** 2)
         kernel /= kernel.sum()
-        filtered = gaussian_filter1d(profile, sigma, mode="constant", truncate=4.0)
+        filtered = gaussian_filter1d(profile, sigma, mode="wrap" if d.c.get("periodic") else "constant", truncate=4.0)
         filtered /= max(float(np.linalg.norm(kernel)), 1e-30)
         sample = filtered[off]
         middle = float(np.median(sample)) if len(sample) else 0.0
@@ -102,7 +102,7 @@ def _align(d, plane, dm):
     shifted = np.empty_like(plane)
     for g, ii in enumerate(d.reps):
         shifted[g] = np.interp(
-            d.t + dm * d.e.coords.dispersion[ii], d.t, plane[g], left=0.0, right=0.0
+            d.t + dm * d.e.coords.dispersion[ii], d.t, plane[g], left=0.0, right=0.0, period=d.e.length if d.c.get("periodic") else None
         )
     return shifted
 
@@ -250,6 +250,7 @@ def refine(d, rows, incumbent, residual, deadline):
                     observed_signal.astype(float),
                     left=0.0,
                     right=0.0,
+                    period=d.e.length if d.c.get("periodic") else None,
                 )
                 > 0.5
             )
@@ -275,7 +276,9 @@ def refine(d, rows, incumbent, residual, deadline):
         for k, part in enumerate(components):
             width = max(2.0, np.exp(part[2]))
             tau = np.exp(x[-1]) if incumbent["scatter"] else 0.0
-            window = abs(d.t - part[1]) <= 4 * width + 4 * tau
+            from .circular import distance
+            separation = distance(d.t, part[1], d.e.length) if d.c.get("periodic") else abs(d.t-part[1])
+            window = separation <= 4*width+4*tau
             leverage = float(np.sum(aligned_residual[:, window] ** 2))
             overlap.append(leverage / max(1.0, float(np.sum(planes[k] ** 2))) ** 0.25)
         target = int(np.argmax(overlap))
@@ -302,6 +305,9 @@ def refine(d, rows, incumbent, residual, deadline):
             ea, eb = (expected_peaks[a], expected_peaks[b])
             observed_contrast = pa["arrival"] - pb["arrival"]
             expected_contrast = ea["arrival"] - eb["arrival"]
+            if d.c.get("periodic"):
+                observed_contrast = (observed_contrast+d.e.length/2)%d.e.length-d.e.length/2
+                expected_contrast = (expected_contrast+d.e.length/2)%d.e.length-d.e.length/2
             separation = abs(observed_contrast - expected_contrast) / max(
                 0.5, min(ea["sigma"], eb["sigma"])
             )
@@ -455,7 +461,7 @@ def refine(d, rows, incumbent, residual, deadline):
                 status="started",
             )
             trial_begin = time.monotonic()
-            family_deadline = min(
+            family_deadline = deadline if d.c.get("periodic") else min(
                 deadline,
                 max(
                     trial_begin + 0.001,
@@ -512,7 +518,7 @@ def refine(d, rows, incumbent, residual, deadline):
                 trial["status"] = "no_native_budget"
                 continue
             native_begin = t
-            family_deadline = min(
+            family_deadline = deadline if d.c.get("periodic") else min(
                 deadline, t + (deadline - t) / (len(native_best) - index)
             )
             try:

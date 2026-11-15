@@ -46,9 +46,11 @@ def select(rows, incumbent):
 def refine(d, rows, incumbent, residual, *, source_sha256, residual_pair=None):
     started = time.monotonic()
     selected = select(rows, incumbent)
+    periodic = d.c.get("periodic")
+    proposal_seconds, spectral_seconds = (12.0, 12.0) if periodic else (6.0, 3.0)
     receipt = dict(
         mode="bounded",
-        hook_seconds=6.0,
+        hook_seconds=proposal_seconds,
         status="pool_only",
         fast_gain=incumbent["gain"],
         fast_rms_gain=incumbent["rms_gain"],
@@ -62,7 +64,7 @@ def refine(d, rows, incumbent, residual, *, source_sha256, residual_pair=None):
         proposal = propose(
             d,
             selected,
-            time.monotonic() + 6.0,
+            time.monotonic() + proposal_seconds,
             source_sha256,
             residual_pair if same else None,
         )
@@ -88,7 +90,7 @@ def refine(d, rows, incumbent, residual, *, source_sha256, residual_pair=None):
     d.evaluations = 0
     try:
         spectral_selected, spectral_review = spectral_refine(
-            d, rows, selected, residual, time.monotonic() + 3.0
+            d, rows, selected, residual, time.monotonic() + spectral_seconds
         )
         spectral_review["work"] = dict(d.e.budget)
     finally:

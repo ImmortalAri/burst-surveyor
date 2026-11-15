@@ -99,7 +99,7 @@ class CombinedTests(unittest.TestCase):
             numeric=(objective.evaluate(left,2,True)[0]-objective.evaluate(right,2,True)[0])/(4*step)
             self.assertAlmostEqual(g[j],numeric,delta=max(.05,abs(numeric)*.002))
 
-    def _native_gate(self,omit):
+    def _native_gate(self,omit,mode='combined'):
         import json,tempfile
         from pathlib import Path
         from unittest.mock import patch
@@ -107,6 +107,8 @@ class CombinedTests(unittest.TestCase):
         d,_=fixture([(55.,2.,150.),(110.,2.,100.)],seed=4,nfreq=32,scatter=False)
         noise=np.random.default_rng(4).normal(size=d.e.raw.shape)
         actual=d.e.raw-noise
+        if mode == 'pulsar':
+            d.e.grid['period_s']=d.e.length*d.e.coords.dt
         with tempfile.TemporaryDirectory() as tmp:
             tmp=Path(tmp);source=tmp/'test.npz'
             np.savez(source,data_full=d.e.raw,metadata=json.dumps(d.e.grid))
@@ -117,7 +119,7 @@ class CombinedTests(unittest.TestCase):
                 np.savez(path,prediction=signal,source_sha256=np.array(entry['source_sha256']),
                          channels=data.indices,frequency=data.e.frequency,time_s=data.t*data.e.coords.dt)
                 return dict(status='provisional',reasons=[],prediction=path.name,prediction_sha256='a'*64)
-            primary=dict(mode='combined',selected={},source_sha256=entry['source_sha256'],grid=entry['grid'])
+            primary=dict(mode=mode,selected={},source_sha256=entry['source_sha256'],grid=entry['grid'])
             with patch('burstsurveyor.science.fit.finalize',side_effect=fake_finalize):
                 result=export_event(source,primary,artifact,tmp/'export')
             return result,artifact.exists()

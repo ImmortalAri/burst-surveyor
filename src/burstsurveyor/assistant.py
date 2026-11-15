@@ -102,7 +102,7 @@ def _packet(ws, event, source, folder, flags, attempt=None, *, retry=False):
             try:
                 with tempfile.TemporaryDirectory(dir=temp) as scratch:
                     data, grid = load_for_review(
-                        source, Path(scratch), event["source_sha256"], wait_seconds=0
+                        source, Path(scratch), event["source_sha256"], wait_seconds=0, mode=read(ws / "session.json").get("mode", "bounded")
                     )
                     signal = None
                     if selected["prediction"]:
@@ -111,6 +111,10 @@ def _packet(ws, event, source, folder, flags, attempt=None, *, retry=False):
                         ) as z:
                             signal = z["prediction"]
                     diagnostics = diagnostic_data(entry, data, grid, signal)
+                    if event.get("native_receipt"):
+                        native = read(run / event["native_receipt"])
+                        if native.get("scattering_assessment"):
+                            diagnostics["scattering_assessment"] = native["scattering_assessment"]
                     components = component_review(
                         selected["parameters"], data.e.frequency[data.indices],
                         data.t * data.e.coords.dt,
@@ -287,7 +291,7 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True, mod
             ws / "fit",
             workers=workers,
             resume=(ws / "fit/manifest.json").is_file(),
-            defer_memory=True,
+            defer_memory=mode != 'pulsar',
             mode=mode,
         )
         flags = {row["id"]: row["flags"] for row in queue(ws / "fit", summary)}

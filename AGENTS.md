@@ -12,6 +12,8 @@ python -m burstsurveyor prepare INPUTS WORK --workers 1
 
 Resume interrupted preparation with identical arguments and `--resume`. Keep the default bounded mode unless another mode was requested. `prepare` can attempt one guarded rescue for a likely missing pulse.
 
+For requested folded pulsar fitting, use `--mode pulsar` and require metadata describing one complete rotation. Its search handles phase wrapping and compares zero/nonzero scattering internally; do not force scattering or equate model terms with separate pulses. See [pulsar profiles](docs/selection.md#pulsar-profiles) only when needed.
+
 ## Inspect
 
 Open `WORK/review/review.html` and work from highest priority down. For every event, open the current packet, selected figure and component table. Inspect the observed spectrum, fitted reconstruction, residuals and pulse profile, including routine events and accepted or rejected follow-ups. Record the time, frequency range and sign of coherent residual features.

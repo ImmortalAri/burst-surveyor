@@ -67,7 +67,13 @@ def queue(run, summary=None, *, sample_clean=0):
     )
 
 
-def load_for_review(path, scratch, source_hash, *, wait_seconds=30):
+def event_mode(run, event):
+    primary = event.get("primary_receipt")
+    return _read(Path(run)/primary).get("mode", "bounded") if primary else "bounded"
+
+
+def load_for_review(path, scratch, source_hash, *, wait_seconds=30, mode="bounded"):
+
     import psutil
     from ._dispatch import estimate_bytes, RESERVE_MIB, MIB
     from .science import inspect_npz, load_event
@@ -80,7 +86,7 @@ def load_for_review(path, scratch, source_hash, *, wait_seconds=30):
                 f"Review needs {needed / MIB:.0f} MiB of available memory; retry when available"
             )
         time.sleep(1)
-    data, entry = load_event(path, scratch)
+    data, entry = load_event(path, scratch, mode=mode)
     if entry["source_sha256"] != source_hash:
         raise ValueError("The raw NPZ differs from the sealed event")
     return data, entry
@@ -264,7 +270,7 @@ def plot_verified_event(
     selection, artifact, digest = _plot_source(run, event, alternative)
     with tempfile.TemporaryDirectory(dir=destination.parent) as scratch:
         if review_data is None:
-            data, entry = load_for_review(source, Path(scratch), event["source_sha256"])
+            data, entry = load_for_review(source, Path(scratch), event["source_sha256"], mode=event_mode(run,event))
         else:
             data, entry = review_data[:2]
             if entry["source_sha256"] != event["source_sha256"]:

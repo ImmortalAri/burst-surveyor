@@ -477,8 +477,8 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bo
         raise ValueError(f"workers must be an integer between 1 and {MAX_WORKERS}")
     if type(defer_memory) is not bool:
         raise ValueError("defer_memory must be a boolean")
-    if mode not in {'bounded', 'scintillation', 'combined'}:
-        raise ValueError('mode must be bounded, scintillation or combined')
+    if mode not in {'bounded', 'scintillation', 'combined', 'pulsar'}:
+        raise ValueError('mode must be bounded, scintillation, combined or pulsar')
     paths, directory = _files(inputs), Path(output).resolve()
     if not resume:
         if directory.exists():
