@@ -22,10 +22,12 @@ def load_config():
     )
 
 
-def load_event(path, scratch_directory):
+def load_event(path, scratch_directory, *, mode="bounded"):
     """Build a raw-only native objective and its source/grid receipt."""
     raw, entry = load_raw(path, scratch_directory)
-    return (ReconstructionData(Event(raw, entry["grid"], load_config())), entry)
+    config = load_config()
+    config["periodic"] = mode == "pulsar"
+    return (ReconstructionData(Event(raw, entry["grid"], config)), entry)
 
 
 def find_regions(d):
@@ -52,10 +54,15 @@ def find_regions(d):
         for width in (1, 2, 4, 8, 16, 32, 64, 128, 256, 512):
             if width > max(1, d.e.length / 9):
                 break
-            trace = gaussian_filter1d(profile, float(width))
+            trace = gaussian_filter1d(profile, float(width), mode="wrap" if d.c.get("periodic") else "reflect")
             trace -= np.median(trace)
             trace /= max(1e-06, 1.4826 * np.median(abs(trace)))
-            peaks = np.unique(np.r_[find_peaks(trace)[0], trace.argmax()])
+            if d.c.get("periodic"):
+                from .circular import peaks as find_circular_peaks
+                found = find_circular_peaks(trace)[0]
+            else:
+                found = find_peaks(trace)[0]
+            peaks = np.unique(np.r_[found, trace.argmax()])
             for t in peaks[trace[peaks] >= 6]:
                 candidates.append(
                     (
@@ -72,7 +79,8 @@ def find_regions(d):
     for strength, t, width, lo, hi in sorted(candidates, reverse=True):
         if regions and strength < 0.12 * regions[0][0]:
             break
-        if all(abs(t - old[1]) > max(3, 2 * max(width, old[2])) for old in regions):
+        from .circular import distance
+        if all((distance(t, old[1], d.e.length) if d.c.get("periodic") else abs(t-old[1])) > max(3, 2*max(width,old[2])) for old in regions):
             regions.append((strength, t, width, lo, hi))
         if len(regions) == 3:
             break
@@ -86,7 +94,7 @@ def region_parts(d, regions):
     parts = []
     for strength, t, sigma, lo, hi in regions:
         width = min(d.e.length, max(2, round(2.5 * sigma)))
-        start = max(0, min(d.e.length - width, round(t - width / 2)))
+        start = round(t-width/2) % d.e.length if d.c.get("periodic") else max(0, min(d.e.length-width, round(t-width/2)))
         box = Template(
             lo // d.e.group_size, hi // d.e.group_size + 1, start, width, strength, 1.0
         )
@@ -98,8 +106,8 @@ def region_parts(d, regions):
 
 def fit_event(path, scratch_directory, *, mode="bounded"):
     """Fit raw intensity pixels. Return the selected row and every search receipt."""
-    if mode not in {"fast", "bounded", "scintillation", "combined"}:
-        raise ValueError("mode must be 'fast', 'bounded', 'scintillation' or 'combined'")
+    if mode not in {"fast", "bounded", "scintillation", "combined", "pulsar"}:
+        raise ValueError("mode must be 'fast', 'bounded', 'scintillation', 'combined' or 'pulsar'")
     with threadpool_limits(limits=1):
         return _fit_event(path, scratch_directory, mode)
 
@@ -110,6 +118,13 @@ def _fit_event(path, scratch_directory, mode):
     stage_seconds = {"staging": time.monotonic() - started}
     stage_start = time.monotonic()
     config = load_config()
+    config["periodic"] = mode == "pulsar"
+    origin = 0
+    if mode == "pulsar":
+        from .circular import phase_origin
+        origin = phase_origin(raw)
+        if origin:
+            raw = np.roll(raw, -origin, axis=1)
     d = ReconstructionData(Event(raw, entry["grid"], config))
     stage_seconds["data_preparation"] = time.monotonic() - stage_start
     if mode in {"scintillation", "combined"}:
@@ -224,7 +239,7 @@ def _fit_event(path, scratch_directory, mode):
     stage_seconds["first_stage_residual"] = time.monotonic() - residual_start
     fast_selected = selected
     bounded_review = None
-    if selected and mode == "bounded":
+    if selected and mode in {"bounded", "pulsar"}:
         bounded_start = time.monotonic()
         selected, bounded_review = refine(
             d,
@@ -250,6 +265,14 @@ def _fit_event(path, scratch_directory, mode):
             residual = max(p.score if p else 0, q.score if q else 0)
         stage_seconds["final_residual_scan"] = time.monotonic() - residual_start
         bounded_review["final_residual_reused"] = identical
+    pulsar_review = None
+    if selected and mode == "pulsar":
+        from .pulsar import refine as paired_refine
+        selected,pulsar_review=paired_refine(d,rows,selected)
+        rows.extend(pulsar_review['trials'])
+        p,q=d.scan(d.group_parts(np.asarray(selected['x']),selected['n'],selected['scatter']))
+        residual=max(p.score if p else 0,q.score if q else 0)
+        stage_seconds['pulsar_review']=pulsar_review['elapsed_seconds']
     record = dict(
         source_sha256=entry["source_sha256"],
         grid=entry["grid"],
@@ -257,6 +280,7 @@ def _fit_event(path, scratch_directory, mode):
         mode=mode,
         fast_selected=fast_selected,
         bounded_review=bounded_review,
+        pulsar_review=pulsar_review,
         regions=regions,
         trials=rows,
         failures=failures,
@@ -274,6 +298,13 @@ def _fit_event(path, scratch_directory, mode):
         )
     except (psutil.Error, OSError):
         record["memory"] = None
+    if mode == "pulsar":
+        from .circular import restore_record
+        record = restore_record(record, origin, d.e.length)
+        record['regions'] = [[s, (t+origin) % d.e.length, w, lo, hi]
+                             for s,t,w,lo,hi in regions]
+        record['phase_origin_bins'] = origin
+        record['coordinate_system'] = 'original input phase; wrapped time intervals may extend past final bin'
     return record
 
 
@@ -281,7 +312,7 @@ def export_event(path, primary, prediction_path, scratch_directory):
     """Render the selected upstream pixels and return their independently scored receipt."""
     started = time.monotonic()
     with threadpool_limits(limits=1):
-        data, source = load_event(path, scratch_directory)
+        data, source = load_event(path, scratch_directory, mode=primary.get("mode", "bounded"))
         if (
             source["source_sha256"] != primary["source_sha256"]
             or source["grid"] != primary["grid"]
@@ -296,7 +327,7 @@ def export_event(path, primary, prediction_path, scratch_directory):
             pulse_fn=pulse,
             source_sha256=source["source_sha256"],
         )
-        if primary.get('mode')=='combined' and row.get('status')=='provisional':
+        if primary.get('mode') in {'combined','pulsar'} and row.get('status')=='provisional':
             from .pulse_coverage import assess_pixels,residual_degradation
             with np.load(prediction_path,allow_pickle=False) as archive:
                 if (str(archive['source_sha256'])!=source['source_sha256'] or
@@ -305,7 +336,7 @@ def export_event(path, primary, prediction_path, scratch_directory):
                     not np.array_equal(archive['time_s'],data.t*data.e.coords.dt)):
                     raise ValueError('Native coverage artifact grid/source mismatch')
                 coverage=assess_pixels(data,archive['prediction'])
-                parent=primary.get('selection_review',{}).get('pre_simplification_full_row')
+                parent=(primary.get('pulsar_review') or {}).get('pre_simplification_full_row') if primary.get('mode')=='pulsar' else primary.get('selection_review',{}).get('pre_simplification_full_row')
                 if parent:
                     row['native_simplification_guard']=residual_degradation(data,parent,archive['prediction'])
             row['native_peak_coverage']=coverage
@@ -318,5 +349,7 @@ def export_event(path, primary, prediction_path, scratch_directory):
                 row['prediction_rejected']=True
                 row.pop('prediction',None)
                 row.pop('prediction_sha256',None)
+        if primary.get('mode')=='pulsar':
+            row['scattering_assessment']=(primary.get('pulsar_review') or {}).get('scattering',dict(status='ambiguous',reason='no_usable_fit'))
     row["seconds"] = time.monotonic() - started
     return row

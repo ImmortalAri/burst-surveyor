@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 
 from .batch import verify
-from .review import check_review_grid, find_event, load_for_review
+from .review import check_review_grid, find_event, load_for_review, event_mode
 from .spectral_review import spectral_review
 
 
@@ -57,7 +57,7 @@ def diagnose(run, event_id, source):
             event_id=event_id, disposition=event["status"], reasons=event["reasons"]
         )
     with tempfile.TemporaryDirectory() as tmp:
-        data, entry = load_for_review(source, Path(tmp), event["source_sha256"])
+        data, entry = load_for_review(source, Path(tmp), event["source_sha256"], mode=event_mode(run,event))
         signal = None
         if event.get("prediction"):
             with np.load(run / event["prediction"], allow_pickle=False) as archive:

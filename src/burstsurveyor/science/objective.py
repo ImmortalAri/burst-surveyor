@@ -3,11 +3,11 @@
 import numpy as np
 from scipy.ndimage import binary_dilation, gaussian_filter1d
 
-from .engine import Data, InputError
+from .engine import Data, Event, InputError
 from .model import pulse
 
 
-def _noise_estimate(raw, channels=None):
+def _noise_estimate(raw, channels=None, *, periodic=False):
     if np.issubdtype(raw.dtype, np.integer):
         # Integer peak-to-peak subtraction may overflow in the input dtype.
         good = np.any(raw != raw[:, :1], axis=1) & (
@@ -31,11 +31,15 @@ def _noise_estimate(raw, channels=None):
         y = raw[ii].astype(float)
         profile += (y - np.median(y, axis=1, keepdims=True)).sum(axis=0)
     profile /= len(ids)
-    smooth = gaussian_filter1d(profile, max(1, len(profile) / 700))
+    smooth = gaussian_filter1d(profile, max(1, len(profile) / 700), mode="wrap" if periodic else "reflect")
     mid = np.median(smooth)
     mad = 1.4826 * np.median(abs(smooth - mid))
     signal = smooth > mid + max(3 * mad, 0.08 * (smooth.max() - mid))
-    signal = binary_dilation(signal, iterations=max(2, len(profile) // 60))
+    radius = max(2, len(profile) // 60)
+    if periodic:
+        signal = binary_dilation(np.tile(signal, 3), iterations=radius)[len(profile):2*len(profile)]
+    else:
+        signal = binary_dilation(signal, iterations=radius)
     off = np.flatnonzero(~signal)
     uncertain = len(off) < 16
     if uncertain:
@@ -44,7 +48,7 @@ def _noise_estimate(raw, channels=None):
     rms = var.copy()
     for ii in np.array_split(ids, max(1, int(np.ceil(len(ids) / 32)))):
         var[ii] = np.var(raw[np.ix_(ii, off)], axis=1, ddof=1, dtype=float)
-        rms[ii] = np.mean(raw[ii, :-1].astype(float) ** 2, axis=1)
+        rms[ii] = np.mean((raw[ii] if periodic else raw[ii, :-1]).astype(float) ** 2, axis=1)
     pool = np.median(var[ids][var[ids] > 0])
     if not np.isfinite(pool):
         raise InputError("Cannot estimate positive channel noise")
@@ -54,24 +58,43 @@ def _noise_estimate(raw, channels=None):
     return (ids, var, rms, off, uncertain)
 
 
-def reporting_noise(raw, channels=None, *, return_audit=False):
+def reporting_noise(raw, channels=None, *, return_audit=False, periodic=False):
     from .channel_mask import screen_mask_neighbors
 
-    initial = _noise_estimate(raw)
+    initial = _noise_estimate(raw, periodic=periodic)
     extra, audit = screen_mask_neighbors(raw, initial[3], uncertain=initial[4])
     ids = np.setdiff1d(initial[0], extra, assume_unique=True)
     if channels is not None:
         ids = np.intersect1d(ids, channels)
-    result = _noise_estimate(raw, ids) if len(extra) or channels is not None else initial
+    result = _noise_estimate(raw, ids, periodic=periodic) if len(extra) or channels is not None else initial
     return (*result, audit) if return_audit else result
 
 
 class ReconstructionData(Data):
     def __init__(self, event, channels=None):
+        from .circular import phase_origin
+        periodic = bool(event.config.get("periodic"))
+        origin = phase_origin(event.raw) if periodic else 0
+        original = event
+        if origin:
+            event = Event(np.roll(event.raw, -origin, axis=1), event.grid, event.config)
+            event.budget = original.budget
+        self._initialize(event, channels)
+        self.e = original
+        if origin:
+            for key in ('y', 'profile', 'noise_time'):
+                setattr(self, key, np.roll(getattr(self, key), origin, axis=-1))
+        self.phase_origin_bins = origin
+        if periodic:
+            self.off_pairs = int(np.sum(self.noise_time & np.roll(self.noise_time, 1)))
+            self.channel_screening = dict(self.channel_screening, phase_origin_bins=origin,
+                coordinate_system="canonical circular phase for screening; native phase for pixels")
+
+    def _initialize(self, event, channels):
         train = np.ones(event.length, bool)
         super().__init__(event, train, ~train, np.arange(event.length) // 4, channels)
         ids, var, rms, off, uncertain, self.channel_screening = reporting_noise(
-            event.raw, channels, return_audit=True
+            event.raw, channels, return_audit=True, periodic=bool(event.config.get("periodic"))
         )
         self.indices, self.var, self.rms_var = (ids, var, rms)
         self.sqrt_weight = 1 / np.sqrt(var)

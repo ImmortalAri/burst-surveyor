@@ -22,8 +22,8 @@ def _parser():
     prepare.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
     prepare.add_argument("--resume", action="store_true")
     prepare.add_argument("--no-auto-rescue", action="store_true")
-    prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation"), default="bounded",
-                         help="bounded is the stable default; combined/scintillation are experimental")
+    prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation", "pulsar"), default="bounded",
+                         help="bounded is the default; pulsar fits one complete folded rotation")
     decide = sub.add_parser(
         "decide", help="record assessments and test proposed fits"
     )
@@ -40,8 +40,8 @@ def _parser():
     fit.add_argument("inputs", type=Path)
     fit.add_argument("output", type=Path)
     fit.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
-    fit.add_argument('--mode', choices=('bounded', 'scintillation', 'combined'), default='bounded',
-                     help='experimental spectral/temporal selection; combined also requires replicated peak coverage')
+    fit.add_argument('--mode', choices=('bounded', 'scintillation', 'combined', 'pulsar'), default='bounded',
+                     help='bounded is the default; pulsar fits folded profiles with period metadata')
     fit.add_argument(
         "--resume",
         action="store_true",
@@ -173,8 +173,8 @@ def _run(args):
     if args.command == "fit":
         from .batch import fit
 
-        if args.mode in {'scintillation', 'combined'} and args.second_look:
-            raise ValueError('Experimental spectral modes do not support the bounded second-look rescue; inspect remaining residuals for review.')
+        if args.mode in {'scintillation', 'combined', 'pulsar'} and args.second_look:
+            raise ValueError('This selection mode uses an internal search; inspect remaining residuals rather than requesting a bounded second look.')
         if args.limit < 1:
             raise ValueError("--limit must be positive")
         summary = _brief(

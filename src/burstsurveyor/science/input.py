@@ -155,6 +155,10 @@ def _inspect(archive, size):
             raise InputError("Intensity payload length disagrees with its NPY header")
     meta = _metadata(archive.read("metadata.npy"))
     grid = {}
+    if "period_s" in meta:
+        period = meta["period_s"]
+        if type(period) in (int, float) and math.isfinite(period) and period > 0:
+            grid["period_s"] = float(period)
     for key in GRID_KEYS[:-1]:
         value = meta.get(key)
         if type(value) not in (int, float) or not math.isfinite(value):

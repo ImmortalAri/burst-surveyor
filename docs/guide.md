@@ -4,6 +4,8 @@ Give your coding agent the repository, a folder of dedispersed observations and 
 
 ## Results
 
+For one complete folded pulsar rotation, use `prepare INPUTS WORK --workers 1 --mode pulsar` with the period in the acquisition metadata. This mode uses periodic pulse shapes and circular discovery; it compares fits with and without scattering instead of assuming a nonzero tail. See [pulsar profiles](selection.md#pulsar-profiles) for the input requirements and interpretation limits.
+
 The agent fits each event, inspects its spectrum, pulse profile and residuals, and attempts a permitted rescue when a pulse appears to be missing. It then returns the following local outputs.
 
 | Output | Contents |

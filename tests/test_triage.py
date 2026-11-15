@@ -57,6 +57,12 @@ class TriageTests(unittest.TestCase):
         rows = ranked([clean, spectral, temporal, unavailable])
         self.assertEqual([r["id"] for r in rows], ["unavailable", "temporal", "clean", "spectral"])
 
+    def test_scattering_ambiguity_is_visible_without_a_missing_pulse_alert(self):
+        r = packet(scattering_assessment=dict(status="ambiguous",reason="incomplete_profile"))
+        result = assess(r)
+        self.assertFalse(result["requires_review"])
+        self.assertTrue(any(item["code"] == "scattering_assessment" for item in result["information"]))
+
     def test_component_count_is_not_a_warning_by_itself(self):
         r = packet()
         r["selected"]["components"] = 7

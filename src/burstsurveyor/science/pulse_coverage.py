@@ -12,9 +12,9 @@ POLICY = dict(discovery_snr=6.,fold_snr=3.,missing_fraction=.5,
               scales=(1,2,4,8,16,32,64,128,256),max_features=24)
 
 
-def _smooth(y,mask,sigma):
-    norm=gaussian_filter1d(mask.astype(float),sigma,mode='nearest')
-    return gaussian_filter1d(y*mask,sigma,mode='nearest')/np.maximum(norm,1e-12)
+def _smooth(y,mask,sigma,periodic=False):
+    norm=gaussian_filter1d(mask.astype(float),sigma,mode='wrap' if periodic else 'nearest')
+    return gaussian_filter1d(y*mask,sigma,mode='wrap' if periodic else 'nearest')/np.maximum(norm,1e-12)
 
 
 def catalogue(data, mask=None):
@@ -35,7 +35,7 @@ def catalogue(data, mask=None):
                 theoretical.append(np.sqrt(1/w.sum())*inflation)
             for sigma in POLICY['scales']:
                 if sigma>max(1,data.e.length/16):break
-                smooth=[_smooth(p,mask,sigma) for p in profiles]
+                smooth=[_smooth(p,mask,sigma,bool(getattr(data, "c", {}).get("periodic"))) for p in profiles]
                 noise=[]
                 for p,floor in zip(smooth,theoretical):
                     off=p[noise_mask]
@@ -45,17 +45,19 @@ def catalogue(data, mask=None):
                     noise.append(max(empirical,floor/np.sqrt(max(1.,sigma))))
                 avg=(smooth[0]+smooth[1])/2
                 scale=np.hypot(*noise)/2
-                peaks,props=find_peaks(avg,prominence=POLICY['discovery_snr']*scale,
+                from .circular import peaks as circular_peaks
+                finder = circular_peaks if getattr(data, "c", {}).get('periodic') else find_peaks
+                peaks,props=finder(avg,prominence=POLICY['discovery_snr']*scale,
                     distance=max(2,sigma),wlen=max(9,8*sigma+1))
                 for k,peak in enumerate(peaks):
                     lo=int(props['left_bases'][k]);hi=int(props['right_bases'][k])
                     if peak-lo<1 or hi-peak<1:continue
                     # The SAME peak and neighboring troughs must recur in both folds.
-                    contrast=[p[peak]-max(p[lo],p[hi]) for p in smooth]
+                    contrast=[p[peak]-max(p[lo % len(p)],p[hi % len(p)]) for p in smooth]
                     z=np.asarray(contrast)/noise
                     if z.min()<POLICY['fold_snr']:continue
-                    prominence=float(avg[peak]-max(avg[lo],avg[hi]))
-                    width=float(peak_widths(avg,[peak],rel_height=.5)[0][0])/2.355
+                    prominence=float(avg[peak]-max(avg[lo % len(avg)],avg[hi % len(avg)]))
+                    width=float(peak_widths(np.tile(avg,3) if getattr(data, "c", {}).get("periodic") else avg,[peak+len(avg) if getattr(data, "c", {}).get("periodic") else peak],rel_height=.5)[0][0])/2.355
                     features.append(dict(time_bin=int(peak),sigma_bins=max(.55,width),
                         smooth_sigma=int(sigma),time_bins=[lo,hi+1],
                         channel_bins=[int(band.min()),int(band.max())+1],
@@ -65,7 +67,8 @@ def catalogue(data, mask=None):
     # suppressed only at the same time, never by the brightest pulse's height.
     kept=[]
     for f in sorted(features,key=lambda x:-x['snr']):
-        if any(abs(f['time_bin']-g['time_bin'])<=max(2,min(f['smooth_sigma'],g['smooth_sigma']))
+        from .circular import distance
+        if any((distance(f['time_bin'],g['time_bin'],data.e.length) if getattr(data, "c", {}).get('periodic') else abs(f['time_bin']-g['time_bin']))<=max(2,min(f['smooth_sigma'],g['smooth_sigma']))
                for g in kept):continue
         kept.append(f)
         if len(kept)==POLICY['max_features']:break
@@ -87,11 +90,11 @@ def assess(data,row,features,mask=None,*,pixels=None):
                 profile+=(signal/data.var[ii,None]).sum(axis=0)
             profiles[key]=profile/w.sum()
         profile=profiles[key]
-        p=_smooth(profile,mask,f['smooth_sigma'])
+        p=_smooth(profile,mask,f['smooth_sigma'],bool(getattr(data, "c", {}).get('periodic')))
         peak=f['time_bin'];lo,hi=f['time_bins'];hi-=1
         # Compare the same local peak/trough contrast; amplitude mismatch in a
         # correctly shaped bright pulse does not automatically create a pulse.
-        contrast=float(p[peak]-max(p[lo],p[hi]))
+        contrast=float(p[peak]-max(p[lo % len(p)],p[hi % len(p)]))
         omission=f['contrast']-contrast
         failed=(contrast<POLICY['missing_fraction']*f['contrast'] and
                 omission/f['noise']>=POLICY['discovery_snr'])
