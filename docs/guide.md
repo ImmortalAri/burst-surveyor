@@ -1,20 +1,44 @@
 # Using burst surveyor
 
-Give your coding agent the repository, a folder of dedispersed observations and a new working directory, then ask it to follow [AGENTS.md](../AGENTS.md). That file contains the installation commands and workflow; the agent does not need to read every document or source file before starting.
+## Installation
 
-For folded pulsars, request [pulsar mode](selection.md#pulsar-profiles) and supply one complete rotation with its period in the acquisition metadata. The default mode fits bursts without periodic wrapping.
+Use a fresh 64-bit Python 3.12 environment. From the repository root, install the bundled FitBurst wheel and burst surveyor, then check the numerical runtime.
 
-## Results
+```sh
+python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
+python -m burstsurveyor doctor
+```
 
-The agent fits each event, inspects its spectrum, pulse profile and residuals, and attempts a permitted rescue when a pulse appears to be missing. It returns these local outputs:
+## Fit an observation
 
-| Output | Contents |
-|---|---|
-| `review/review.html` | Ranked figures, component tables and diagnostic notes |
-| `decisions.json` | Inspection evidence linked to the input and fit hashes |
-| `report.csv`, `report.json` | Verified results and review decisions |
+```sh
+python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
+python -m burstsurveyor verify run
+```
 
-Missing fits and unavailable inspections come first in the queue, followed by possible missed components. Other notes are informational. The agent still inspects routine events and leaves persistent or ambiguous problems marked for review.
+The default mode fits dedispersed bursts without periodic wrapping. Supply one [NPZ file](reference.md) or a directory of NPZ files and a new output directory. To resume an interrupted run, repeat the fit command with the same inputs, mode and worker count and add `--resume`.
+
+`run/results.json` contains one entry per observation. For an exported fit, the entry gives the component count, scattering model, fit scores and path to the prediction NPZ. Modeled intensity is `prediction + baseline[:, None]` on the original pixels. An entry without an export records the status and reasons. The [reference](reference.md#export) describes the arrays and units.
+
+## Folded pulsar profiles
+
+For a profile covering one complete rotation, include the period in seconds as `period_s` in the acquisition metadata and select [pulsar mode](selection.md#pulsar-profiles).
+
+```sh
+python -m burstsurveyor fit folded-profile.npz pulsar-run --mode pulsar --workers 1
+```
+
+## Figures and residuals
+
+To generate figures and screen the residuals as part of a fit, use `prepare` with a new working directory. The bundled seven-pulse observation illustrates an automatic follow-up fit.
+
+```sh
+python -m burstsurveyor prepare examples/seven-pulse.npz review-run --workers 1
+```
+
+Open `review-run/review/review.html` to inspect the observed spectrum, pulse profile, fitted reconstruction and residuals. In bounded mode, `prepare` can test one additional component per event when a peak is missing from the fit and leaves positive residuals in both channel folds. The queue shows the selected reconstruction after the follow-up. The initial fit is in `review-run/fit`. Resume interrupted preparation with the same arguments and `--resume`.
+
+For a completed `fit` run, [triage](review-queue.md#existing-runs) generates a review queue without refitting. To record inspection decisions and produce `report.csv` and `report.json` for a prepared run, follow the [review procedure](review-queue.md#record-an-inspection). Observations and generated reports stay local.
 
 ## Scores and interpretation
 
@@ -27,5 +51,3 @@ Components can overlap, and their count is not a count of physical pulses. Width
 - [Input format and exported arrays](reference.md)
 - [Review priorities and triage of existing runs](review-queue.md)
 - [Pulsar and experimental selection modes](selection.md)
-
-Resume interrupted preparation with the same arguments and `--resume`. The bundled [two-pulse](../examples/two-pulse.npz) and [seven-pulse](../examples/seven-pulse.npz) inputs are small synthetic controls. Observations and generated reports stay local.

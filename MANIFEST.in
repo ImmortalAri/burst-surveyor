@@ -1,4 +1,4 @@
-include README.md AGENTS.md CITATION.cff LICENSE constraints.txt
+include README.md CITATION.cff LICENSE constraints.txt
 include vendor/*.whl vendor/*.json vendor/*.txt vendor/*.md vendor/verify.py
 recursive-include src/burstsurveyor *.json
 recursive-include examples *.npz *.json *.png

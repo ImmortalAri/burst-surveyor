@@ -1,4 +1,4 @@
-"""Exercise the installed CLI across the text and data boundaries an AI client uses."""
+"""Exercise the installed CLI, synthetic example and output schemas."""
 
 import hashlib
 import json
@@ -35,7 +35,9 @@ class PublicContractTests(unittest.TestCase):
         command = [sys.executable, "-m", "burstsurveyor"]
         help_text = subprocess.check_output(command + ["--help"], text=True)
         self.assertNotIn("--version", help_text)
-        self.assertIn("{prepare,decide,finish,doctor}", help_text)
+        self.assertIn("Automated fitting", help_text)
+        for subcommand in ("fit", "verify", "prepare", "decide", "finish", "doctor"):
+            self.assertRegex(help_text, rf"(?m)^\s+{subcommand}\s+\S")
         doctor = json.loads(subprocess.check_output(command + ["doctor"]))
         self.assertEqual(doctor["product"], "Burst Surveyor")
         self.assertNotIn("version", doctor)

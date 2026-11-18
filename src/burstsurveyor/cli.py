@@ -9,34 +9,10 @@ import sys
 def _parser():
     parser = argparse.ArgumentParser(
         prog="burstsurveyor",
-        description="AI-assisted FitBurst fitting: prepare reconstructions, record reviews, and verify the results.",
+        description="Automated fitting of radio bursts and folded pulsar profiles with FitBurst.",
     )
-    sub = parser.add_subparsers(
-        dest="command", required=True, metavar="{prepare,decide,finish,doctor}"
-    )
-    prepare = sub.add_parser(
-        "prepare", help="fit the inputs and generate review packets and figures"
-    )
-    prepare.add_argument("inputs", type=Path)
-    prepare.add_argument("workspace", type=Path)
-    prepare.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
-    prepare.add_argument("--resume", action="store_true")
-    prepare.add_argument("--no-auto-rescue", action="store_true")
-    prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation", "pulsar"), default="bounded",
-                         help="bounded is the default; pulsar fits one complete folded rotation")
-    decide = sub.add_parser(
-        "decide", help="record assessments and test proposed fits"
-    )
-    decide.add_argument("workspace", type=Path)
-    decide.add_argument("inputs", type=Path)
-    decide.add_argument(
-        "decisions", type=Path, help="JSON object or array of decisions"
-    )
-    finish = sub.add_parser(
-        "finish", help="verify complete reviews and publish the event table"
-    )
-    finish.add_argument("workspace", type=Path)
-    fit = sub.add_parser("fit", help="fit without the review loop (internal)")
+    sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
+    fit = sub.add_parser("fit", help="fit one NPZ file or a directory and export the reconstructions")
     fit.add_argument("inputs", type=Path)
     fit.add_argument("output", type=Path)
     fit.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
@@ -66,6 +42,28 @@ def _parser():
         metavar="DIRECTORY",
         help="also verify this alternate analysis",
     )
+    prepare = sub.add_parser(
+        "prepare", help="fit the inputs and generate review packets and figures"
+    )
+    prepare.add_argument("inputs", type=Path)
+    prepare.add_argument("workspace", type=Path)
+    prepare.add_argument("--workers", type=int, choices=(1, 2, 3), default=3)
+    prepare.add_argument("--resume", action="store_true")
+    prepare.add_argument("--no-auto-rescue", action="store_true")
+    prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation", "pulsar"), default="bounded",
+                         help="bounded is the default; pulsar fits one complete folded rotation")
+    decide = sub.add_parser(
+        "decide", help="record assessments and test proposed fits"
+    )
+    decide.add_argument("workspace", type=Path)
+    decide.add_argument("inputs", type=Path)
+    decide.add_argument(
+        "decisions", type=Path, help="JSON object or array of decisions"
+    )
+    finish = sub.add_parser(
+        "finish", help="verify complete reviews and write the reviewed event table"
+    )
+    finish.add_argument("workspace", type=Path)
     example = sub.add_parser("example", help="write a synthetic test input")
     example.add_argument("destination", type=Path)
     inspect = sub.add_parser("inspect", help="read the input grid")
@@ -79,12 +77,12 @@ def _parser():
         metavar="N",
         help="also include N unflagged controls",
     )
-    plot = sub.add_parser("plot")
+    plot = sub.add_parser("plot", help="plot a fitted event and its residuals")
     plot.add_argument("run", type=Path)
     plot.add_argument("--event", required=True, dest="event_id")
     plot.add_argument("--input", required=True, type=Path)
     plot.add_argument("--out", required=True, type=Path)
-    diag = sub.add_parser("diagnose")
+    diag = sub.add_parser("diagnose", help="compute diagnostics for a fitted event")
     diag.add_argument("run", type=Path)
     diag.add_argument("--event", required=True, dest="event_id")
     diag.add_argument("--input", required=True, type=Path)
@@ -96,8 +94,8 @@ def _parser():
     triage_verify = sub.add_parser("triage-verify", help="verify a ranked review queue and its evidence")
     triage_verify.add_argument("output", type=Path)
     triage_verify.add_argument("--run", type=Path)
-    rescue = sub.add_parser("rescue")
-    challenge = sub.add_parser("challenge")
+    rescue = sub.add_parser("rescue", help="test a temporal follow-up fit")
+    challenge = sub.add_parser("challenge", help="test a proposed additional component")
     for cmd in (rescue, challenge):
         cmd.add_argument("run", type=Path)
         cmd.add_argument("inputs", type=Path)
@@ -108,7 +106,7 @@ def _parser():
     sub.add_parser(
         "doctor", help="check the numerical runtime and upstream FitBurst import"
     )
-    schema = sub.add_parser("schema")
+    schema = sub.add_parser("schema", help="show the results or proposal JSON schema")
     schema.add_argument("kind", choices=("results", "proposal"))
     return parser
 

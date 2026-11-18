@@ -1,6 +1,6 @@
 # Selection modes
 
-`prepare INPUTS WORK --workers 1` uses `--mode bounded` by default. It permits at most one temporal rescue per event when the residual evidence justifies it. All modes preserve rejected trials and enforce resource guards.
+`fit` and `prepare` use `--mode bounded` by default. In this mode, `prepare` permits at most one temporal rescue per event when the residual evidence justifies it. All modes preserve rejected trials and enforce resource guards.
 
 ## Pulsar profiles
 
