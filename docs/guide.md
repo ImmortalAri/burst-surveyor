@@ -30,10 +30,10 @@ python -m burstsurveyor fit folded-profile.npz pulsar-run --mode pulsar --worker
 
 ## Figures and residuals
 
-To generate figures and screen the residuals as part of a fit, use `prepare` with a new working directory. The bundled seven-pulse observation illustrates an automatic follow-up fit.
+To generate figures and screen the residuals as part of a fit, use `prepare` with a new working directory.
 
 ```sh
-python -m burstsurveyor prepare examples/seven-pulse.npz review-run --workers 1
+python -m burstsurveyor prepare examples/two-pulse.npz review-run --workers 1
 ```
 
 Open `review-run/review/review.html` to inspect the observed spectrum, pulse profile, fitted reconstruction and residuals. In bounded mode, `prepare` can test one additional component per event when a peak is missing from the fit and leaves positive residuals in both channel folds. The queue shows the selected reconstruction after the follow-up. The initial fit is in `review-run/fit`. Resume interrupted preparation with the same arguments and `--resume`.

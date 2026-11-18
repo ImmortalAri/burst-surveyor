@@ -16,21 +16,33 @@ python -m burstsurveyor verify run
 
 ## Burst examples
 
-The examples below show the observed pulse profile and spectrum alongside the fitted reconstruction and residuals. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
-
-### FRB 20190412A
-
-![FRB 20190412A pulse profile, observed spectrum, fitted reconstruction and residuals](examples/frb20190412a.png)
+The BaseCat2 examples show the observed pulse profile, the automated fit and a human reference on the same time grid. The lower panel shows the observed intensity minus each model. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
 
 ### Event 156410110
 
-![Event 156410110 pulse profile with a human reference, observed spectrum, fitted reconstruction and residuals](examples/real-multipulse.png)
+Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference.
 
-### Seven pulses
+![Observed profile and residuals for event 156410110. The human reference leaves a positive residual near 16.5 ms.](examples/event-156410110-comparison.png)
 
-The initial fit recovered six of the seven injected pulses. A positive residual triggered a follow-up fit that recovered the seventh.
+[Observed spectrum, fitted reconstruction and residuals for event 156410110](examples/real-multipulse.png)
 
-![Seven synthetic pulses after a follow-up fit, showing the pulse profile, observed spectrum, reconstruction and residuals](examples/seven-pulse.png)
+### Event 300938875
+
+The automated fit recovers a peak near 3.2 ms that is absent from the saved human reference candidate. The atlas records no final human selection for this event. The weaker feature near 4.6 ms remains uncertain.
+
+![Observed profile and residuals for event 300938875. Two peaks are visible near 3 ms and the reference candidate follows only the first.](examples/event-300938875-comparison.png)
+
+### Event 1114368517
+
+Both fits use one component and give similar pulse profiles. At 600 MHz, the automated fit selects zero scattering and the human reference gives 0.123 ms. The time bin is 0.655 ms.
+
+![Observed profile and residuals for event 1114368517. The two fitted profiles nearly coincide.](examples/event-1114368517-comparison.png)
+
+### FRB 20190412A
+
+The observed pulse profile and spectrum are shown alongside the fitted reconstruction and residuals.
+
+![FRB 20190412A pulse profile, observed spectrum, fitted reconstruction and residuals](examples/frb20190412a.png)
 
 ## Pulsars
 
@@ -38,7 +50,11 @@ The initial fit recovered six of the seven injected pulses. A positive residual 
 
 ### J1849+0409
 
-![J1849+0409 pulse profile, observed spectrum, fitted reconstruction and residuals](examples/pulsar-j1849-0409.png)
+The two fits follow the main pulse and interpulse. The largest difference between the profiles occurs near the rotation boundary.
+
+![Folded profile of J1849+0409 over one rotation with the automated fit, human reference and residuals.](examples/pulsar-j1849-0409-comparison.png)
+
+[Observed spectrum, fitted reconstruction and residuals for J1849+0409](examples/pulsar-j1849-0409.png)
 
 ### J0824+0028
 
