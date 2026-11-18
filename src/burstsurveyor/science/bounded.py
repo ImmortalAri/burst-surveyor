@@ -47,10 +47,19 @@ def refine(d, rows, incumbent, residual, *, source_sha256, residual_pair=None):
     started = time.monotonic()
     selected = select(rows, incumbent)
     periodic = d.c.get("periodic")
-    proposal_seconds, spectral_seconds = (12.0, 12.0) if periodic else (6.0, 3.0)
+    if periodic:
+        proposal_deadline = time.monotonic() + 12.0
+        spectral_seconds = 12.0
+    else:
+        # Each hook has independent counters. Its candidate and iteration caps
+        # remain in force even when the data fit within the evaluation budget.
+        d.c.update(d.c["bounded_refinement_work"])
+        proposal_deadline = float("inf")
+        spectral_seconds = float("inf")
     receipt = dict(
         mode="bounded",
-        hook_seconds=proposal_seconds,
+        hook_seconds=12.0 if periodic else None,
+        work_limits=None if periodic else dict(d.c["bounded_refinement_work"]),
         status="pool_only",
         fast_gain=incumbent["gain"],
         fast_rms_gain=incumbent["rms_gain"],
@@ -64,7 +73,7 @@ def refine(d, rows, incumbent, residual, *, source_sha256, residual_pair=None):
         proposal = propose(
             d,
             selected,
-            time.monotonic() + proposal_seconds,
+            proposal_deadline,
             source_sha256,
             residual_pair if same else None,
         )

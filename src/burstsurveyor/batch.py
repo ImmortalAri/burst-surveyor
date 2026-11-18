@@ -6,11 +6,12 @@ import json
 import math
 from pathlib import Path
 import platform
+import shutil
 import tempfile
 import time
 import uuid
 
-from ._dispatch import MAX_WORKERS, RESERVE_MIB, dispatch
+from ._dispatch import EVENT_WATCHDOG_SECONDS, MAX_WORKERS, RESERVE_MIB, dispatch, run_isolated
 from ._storage import read, run_lock, sha256, utc, write
 
 SCHEMA = 1
@@ -77,6 +78,7 @@ def _method(mode="bounded"):
             "mode": mode,
             "reserve_mib": RESERVE_MIB,
             "threads_per_worker": 1,
+            **({"event_watchdog_seconds": EVENT_WATCHDOG_SECONDS} if mode == "bounded" else {}),
         },
     }
 
@@ -166,6 +168,25 @@ def _run_task(task):
     )
     result["elapsed_seconds"] = time.monotonic() - started
     return result
+
+
+def _run_bounded_task(task):
+    stage, _, scratch, _, event, *_ = task
+    started = time.monotonic()
+    try:
+        return run_isolated(_run_task, (task,), scratch=scratch.parent)
+    except TimeoutError as exc:
+        # The worker may have written scratch files before it got stuck.
+        shutil.rmtree(scratch)
+        scratch.mkdir()
+        return {
+            "status": "failed",
+            "reasons": [str(exc)],
+            "termination": "emergency_timeout",
+            "source_sha256": event["sha256"],
+            "stage": stage,
+            "elapsed_seconds": time.monotonic() - started,
+        }
 
 
 def _check_event(folder, stage, event, primary_hash=None):
@@ -373,12 +394,14 @@ def _run_stage(directory, paths, manifest, stage, workers, primary):
                     continue
                 row.update(source_sha256=event["sha256"], elapsed_seconds=0.0)
                 commit(event, task(event), row)
+            bounded = manifest["method"]["policy"]["mode"] == "bounded"
             metrics = dispatch(
                 todo,
                 min(workers, max(1, len(todo))),
                 task,
-                _run_task,
+                _run_bounded_task if bounded else _run_task,
                 commit,
+                isolated=bounded,
                 defer=defer if manifest.get("defer_memory") else None,
             )
             _require(

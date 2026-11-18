@@ -119,6 +119,8 @@ def _fit_event(path, scratch_directory, mode):
     stage_start = time.monotonic()
     config = load_config()
     config["periodic"] = mode == "pulsar"
+    if mode == "bounded":
+        config.update(config["bounded_initial_work"])
     origin = 0
     if mode == "pulsar":
         from .circular import phase_origin
@@ -157,7 +159,7 @@ def _fit_event(path, scratch_directory, mode):
                 np.array(parts),
                 name,
                 iterations,
-                time.monotonic() + (16 if native else 10),
+                float("inf") if mode == "bounded" else time.monotonic() + (16 if native else 10),
             )
             gain, rms, energy = score(d, row)
             if not np.isfinite([gain, rms, energy]).all():

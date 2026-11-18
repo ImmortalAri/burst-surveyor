@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+import time
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
@@ -150,6 +151,39 @@ class BatchTests(unittest.TestCase):
                     stream.write(b" ")
                 with self.assertRaisesRegex(ValueError, "Changed"):
                     batch.verify(copied)
+
+    def test_initial_fitter_uses_bounded_work_policy(self):
+        from importlib import import_module
+
+        fitting = import_module("burstsurveyor.science.fit")
+        config = fitting.load_config()
+        config["bounded_initial_work"]["max_evaluations"] = 0
+        source = self.inputs / "two pulses.npz"
+        with TemporaryDirectory() as tmp, patch.object(fitting, "load_config", return_value=config):
+            result = fitting.fit_event(source, Path(tmp))
+        self.assertEqual(result["status"], "unresolved")
+        self.assertEqual(result["work"]["evaluations"], 0)
+        self.assertTrue(result["failures"])
+
+    def test_watchdog_kills_a_stalled_worker_and_the_next_worker_can_finish(self):
+        with TemporaryDirectory() as tmp:
+            scratch = Path(tmp)
+            with self.assertRaisesRegex(TimeoutError, "Emergency event watchdog"):
+                _dispatch.run_isolated(time.sleep, (30,), scratch=scratch, timeout=0.5)
+            result = _dispatch.run_isolated(str, (42,), scratch=scratch, timeout=10)
+            self.assertEqual(result, "42")
+            self.assertEqual(list(scratch.iterdir()), [])
+
+    def test_timed_out_event_does_not_commit_a_partial_prediction(self):
+        with TemporaryDirectory() as tmp:
+            scratch = Path(tmp) / "worker"
+            scratch.mkdir()
+            (scratch / "partial.npz").touch()
+            task = ("native", None, scratch, None, {"sha256": "test"}, None, "bounded")
+            with patch.object(batch, "run_isolated", side_effect=TimeoutError("emergency")):
+                result = batch._run_bounded_task(task)
+            self.assertEqual((result["status"], result["termination"]), ("failed", "emergency_timeout"))
+            self.assertEqual(list(scratch.iterdir()), [])
 
     def test_resume_after_event_committed(self):
         with TemporaryDirectory() as tmp:
