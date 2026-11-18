@@ -1,12 +1,14 @@
 """Bounded temporal rescue. All outputs are separate from the sealed fit."""
 
 import math
+import shutil
 from pathlib import Path
 import tempfile
 import time
 
 import numpy as np
 
+from ._dispatch import EVENT_WATCHDOG_SECONDS, run_isolated
 from ._storage import read, run_lock, sha256, write
 from .review import find_event, queue
 
@@ -17,8 +19,9 @@ POLICY = {
     "validation_floor": 3.0,
     "full_gain_floor": 8.0,
     "fraction": 0.001,
-    "optimizer_seconds": 6.0,
-    "optimizer_max_seconds": 48.0,
+    "max_evaluations": 160,
+    "max_native_work": 120000000,
+    "event_watchdog_seconds": EVENT_WATCHDOG_SECONDS,
     "optimizer_iterations": 10,
 }
 
@@ -207,10 +210,7 @@ def _fit_direction(data, train, incumbent, packet, strength):
     x = np.array(incumbent["x"] if incumbent else [0.0], dtype=float)
     seed = np.r_[x[: 5 * n], extra, x[5 * n :]]
     scatter = bool(incumbent and incumbent["scatter"])
-    seconds = min(
-        POLICY["optimizer_max_seconds"],
-        POLICY["optimizer_seconds"] * max(1, math.ceil(data.e.length / 2048)),
-    )
+    training.c.update({key: POLICY[key] for key in ("max_evaluations", "max_native_work")})
     # Only the discovery channels can adjust the proposed geometry.
     return optimizer(
         training,
@@ -220,7 +220,7 @@ def _fit_direction(data, train, incumbent, packet, strength):
         seed,
         "second_look",
         POLICY["optimizer_iterations"],
-        time.monotonic() + seconds,
+        math.inf,
     )
 
 
@@ -403,6 +403,17 @@ def verify_second_look(run, output):
     return _verified(run, output, verify(run))
 
 
+def _attempt_from_prediction(source, event, native, prediction, packet, directory):
+    from threadpoolctl import threadpool_limits
+
+    with threadpool_limits(limits=1):
+        signal = None
+        if prediction is not None:
+            with np.load(prediction, allow_pickle=False) as archive:
+                signal = archive["prediction"]
+        return _attempt(source, event, native, signal, packet, directory)
+
+
 def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
     """Evaluate at most one additional pulse per routed event into a separate output."""
     import psutil
@@ -510,13 +521,22 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
                         if event.get("native_receipt")
                         else None
                     )
-                    signal = None
-                    if event.get("prediction"):
-                        with np.load(
-                            run / event["prediction"], allow_pickle=False
-                        ) as z:
-                            signal = z["prediction"]
-                    result = _attempt(source, event, native, signal, packet, directory)
+                    prediction = run / event["prediction"] if event.get("prediction") else None
+                    try:
+                        result = run_isolated(
+                            _attempt_from_prediction,
+                            (source, event, native, prediction, packet, directory),
+                            scratch=Path(temp),
+                        )
+                    except TimeoutError:
+                        shutil.rmtree(directory)
+                        directory.mkdir()
+                        result = dict(
+                            id=event["id"], source_sha256=event["source_sha256"],
+                            status="retained", reason="emergency_timeout",
+                            termination="emergency_timeout", prediction=None,
+                            proposal_origin="external" if packet else "automatic",
+                        )
                     result["seconds"] = time.monotonic() - start
                     write(directory / "decision.json", result)
                     write(
@@ -524,7 +544,6 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
                         {p.name: sha256(p) for p in directory.iterdir() if p.is_file()},
                     )
                     directory.rename(dest)
-                    del signal
             items.append(_decision(dest, event))
         seal = dict(schema_version=1, method_sha256=sha256(method), events=items)
         write(output / "seal.json", seal)

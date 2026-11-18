@@ -392,7 +392,7 @@ def _automatic_challenge(ws, inputs, event, summary):
     if (root / "decision.json").exists() or (root / "followup").exists():
         return
     packet, desc = _base(ws, event)
-    if packet["inspection_status"] != "figure_ready":
+    if not packet.get("diagnostics"):
         return
     request = root / "challenge.json"
     if request.exists():

@@ -22,3 +22,19 @@ Modeled intensity is `prediction + baseline[:, None]` on the original pixels. Th
 Pulsar search uses an internal circular phase origin, recorded as `phase_origin_bins`; exported pixels and fitted arrival times are restored to the original input phase. Internal review intervals crossing phase zero can extend beyond the last bin and are interpreted modulo the number of time bins. Intrinsic widths are Gaussian sigma; scattering timescales refer to 600 MHz.
 
 See [scores and interpretation](guide.md#scores-and-interpretation) for the meaning and limits of exported scores and component counts.
+
+## Bounded fit reproducibility
+
+The default FRB fitter uses candidate, iteration and work limits. The initial
+search allows 600 objective evaluations or 250 million estimated native work
+units. Each refinement hook has its own allowance of 300 evaluations or 120
+million native work units. The optional temporal retry allows ten iterations,
+160 evaluations or 120 million native work units. The fitter checks work limits
+between numerical calls. Native work weights each evaluation by the number of
+pixels and, for derivative evaluations, the number of model components.
+
+Batch workers have a ten-minute emergency watchdog per event and stage. A
+timed-out initial fit or export is recorded as failed and the batch continues.
+A timed-out retry records the failure alongside the preserved baseline.
+Schedule and CPU speed affect completion time. Compare the exported
+reconstruction and model parameters with numerical tolerances across platforms.

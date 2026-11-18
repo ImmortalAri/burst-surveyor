@@ -169,23 +169,22 @@ class ResidualDiscoveryTests(unittest.TestCase):
         self.assertGreater(packet["time_bins"][1], 2800)
         self.assertGreater(_evidence(data, data.indices[1::2], model, packet), 3)
 
-    def test_large_native_grid_gets_bounded_work_without_more_iterations(self):
+    def test_second_look_uses_fixed_work_limits_at_every_grid_size(self):
         from burstsurveyor.secondlook import _fit_direction, POLICY
 
         packet = dict(time_bins=[80, 100], channel_bins=[0, 16])
-        training = SimpleNamespace(component_seed=lambda box: [0., 90., 2., 0., -1.])
-        granted = []
-        with patch("burstsurveyor.science.objective.ReconstructionData", return_value=training), \
-             patch("burstsurveyor.science.engine.optimizer", side_effect=lambda *a: (a[-2], a[-1])), \
-             patch("burstsurveyor.secondlook.time.monotonic", return_value=100):
+        training = SimpleNamespace(c={}, component_seed=lambda box: [0., 90., 2., 0., -1.])
+        with (
+            patch("burstsurveyor.science.objective.ReconstructionData", return_value=training),
+            patch("burstsurveyor.science.engine.optimizer", side_effect=lambda *a: (a[-2], a[-1])),
+        ):
             for bins in (300, 25389, 10**7):
                 data = SimpleNamespace(e=SimpleNamespace(length=bins, group_size=4))
                 iterations, deadline = _fit_direction(data, np.arange(16), None, packet, 9.)
                 self.assertEqual(iterations, POLICY["optimizer_iterations"])
-                granted.append(deadline - 100)
-        self.assertEqual(granted[0], 6.)
-        self.assertGreater(granted[1], granted[0])
-        self.assertLessEqual(max(granted), 48.)
+                self.assertEqual(deadline, float("inf"))
+                self.assertEqual(training.c, {k: POLICY[k] for k in ("max_evaluations", "max_native_work")})
+
 
 
 class SecondLookTests(unittest.TestCase):

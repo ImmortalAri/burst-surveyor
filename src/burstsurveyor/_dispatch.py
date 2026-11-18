@@ -1,16 +1,51 @@
 """Memory-aware scheduling. Only the coordinator commits completed worker output."""
 
-from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
 import multiprocessing
 import os
+from pathlib import Path
+import tempfile
 import time
 
 import psutil
+
+from ._storage import read, write
 
 MIB = 1024**2
 RESERVE_MIB = 512
 MAX_WORKERS = 3
 MEMORY_WAIT_SECONDS = 30
+EVENT_WATCHDOG_SECONDS = 600
+
+
+def _write_worker_result(result_path, work, args):
+    configure_worker()
+    write(result_path, work(*args))
+
+
+def run_isolated(work, args, *, scratch, timeout=EVENT_WATCHDOG_SECONDS):
+    """Run one event in a killable process. Never return a partial result."""
+    with tempfile.TemporaryDirectory(dir=scratch) as temporary:
+        result_path = Path(temporary) / "result.json"
+        ctx = multiprocessing.get_context("spawn")
+        process = ctx.Process(target=_write_worker_result, args=(result_path, work, args))
+        process.start()
+        try:
+            process.join(timeout)
+            if process.is_alive():
+                raise TimeoutError(f"Emergency event watchdog exceeded {timeout:g} seconds")
+            if process.exitcode != 0:
+                raise RuntimeError(f"Event worker exited with code {process.exitcode}")
+            return read(result_path)
+        finally:
+            if process.is_alive():
+                process.terminate()
+                process.join(2)
+                if process.is_alive():
+                    process.kill()
+                    process.join()
+            process.close()
+
 
 
 def estimate_bytes(event):
@@ -29,7 +64,7 @@ def configure_worker():
         os.environ[key] = "1"
 
 
-def dispatch(events, workers, make_task, work, commit, *, defer=None):
+def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=False):
     """Return stage telemetry. I/O or worker exceptions leave atomic commits resumable."""
     pending = sorted(events, key=estimate_bytes, reverse=True)
     active = {}
@@ -59,10 +94,14 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None):
                         commit(event, task, work(task))
                     else:
                         if pool is None:
-                            pool = ProcessPoolExecutor(
-                                max_workers=workers,
-                                initializer=configure_worker,
-                                mp_context=multiprocessing.get_context("spawn"),
+                            # The bounded worker already supervises a child process per event.
+                            pool = (
+                                ThreadPoolExecutor(max_workers=workers)
+                                if isolated else ProcessPoolExecutor(
+                                    max_workers=workers,
+                                    initializer=configure_worker,
+                                    mp_context=multiprocessing.get_context("spawn"),
+                                )
                             )
                         future = pool.submit(work, task)
                         active[future] = (event, task)

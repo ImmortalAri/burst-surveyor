@@ -166,9 +166,11 @@ def refine(d, rows, incumbent, residual, deadline):
     ``deadline`` is absolute monotonic time. ``residual`` may be a cached exact
     grouped residual plane, a dict with ``plane``/``peak``, a scalar peak, or None.
     Four grouped geometry/family trials and at most two native family trials
-    share this deadline; numerical calls may overrun it.
+    share this deadline in timed callers. Bounded batch fitting passes infinity
+    and uses fixed iteration and work limits.
     All masks and authoritative weights come from the caller's existing d.
     """
+    timed_families = np.isfinite(deadline) and not d.c.get("periodic")
     begin = time.monotonic()
     selected = incumbent
     review = dict(
@@ -448,7 +450,10 @@ def refine(d, rows, incumbent, residual, deadline):
         best = [r for r in best if r is not None]
         # Preserve a joint split independently of a locally attractive addition.
         # Complete grouped comparisons before spending on original native pixels.
-        grouped_end = time.monotonic() + 0.55 * max(0.0, deadline - time.monotonic())
+        grouped_end = begin
+        if timed_families:
+            now = time.monotonic()
+            grouped_end = now + 0.55 * max(0.0, deadline - now)
         promoted = []
         for index, seed in enumerate(best):
             if time.monotonic() >= deadline:
@@ -461,7 +466,7 @@ def refine(d, rows, incumbent, residual, deadline):
                 status="started",
             )
             trial_begin = time.monotonic()
-            family_deadline = deadline if d.c.get("periodic") else min(
+            family_deadline = deadline if not timed_families else min(
                 deadline,
                 max(
                     trial_begin + 0.001,
@@ -518,7 +523,7 @@ def refine(d, rows, incumbent, residual, deadline):
                 trial["status"] = "no_native_budget"
                 continue
             native_begin = t
-            family_deadline = deadline if d.c.get("periodic") else min(
+            family_deadline = deadline if not timed_families else min(
                 deadline, t + (deadline - t) / (len(native_best) - index)
             )
             try:

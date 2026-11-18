@@ -329,7 +329,8 @@ def propose(data, incumbent, deadline, source_sha256, residual_pair=None):
                     q,
                     label,
                     16,
-                    deadline if data.c.get("periodic") else min(deadline, time.monotonic() + 8.0),
+                    deadline if not np.isfinite(deadline) or data.c.get("periodic")
+                    else min(deadline, time.monotonic() + 8.0),
                 )
                 if time.monotonic() < deadline:
                     row = optimizer(
@@ -340,7 +341,8 @@ def propose(data, incumbent, deadline, source_sha256, residual_pair=None):
                         np.asarray(row["x"]),
                         label + "-native",
                         4,
-                        deadline if data.c.get("periodic") else min(deadline, time.monotonic() + 8.0),
+                        deadline if not np.isfinite(deadline) or data.c.get("periodic")
+                        else min(deadline, time.monotonic() + 8.0),
                     )
                 row["gain"], row["rms_gain"], row["energy"] = score(d, row)
                 candidates.append(

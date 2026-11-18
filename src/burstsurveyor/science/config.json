@@ -47,6 +47,8 @@
   "max_components": 7,
   "max_native_work": 10000000000,
   "max_evaluations": 6000,
+  "bounded_initial_work": {"max_evaluations": 600, "max_native_work": 250000000},
+  "bounded_refinement_work": {"max_evaluations": 300, "max_native_work": 120000000},
   "nnls_relative_cutoff": 1e-12,
   "pivot_slope_bound": 80,
   "absolute_log_signal_bound": 200,
