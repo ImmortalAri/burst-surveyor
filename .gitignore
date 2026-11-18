@@ -10,4 +10,3 @@ results/
 wheels/
 *.npz
 !examples/two-pulse.npz
-!examples/seven-pulse.npz
