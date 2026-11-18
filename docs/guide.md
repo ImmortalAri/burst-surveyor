@@ -2,18 +2,19 @@
 
 ## Installation
 
-Use a fresh 64-bit Python 3.12 environment. From the repository root, install the bundled FitBurst wheel and burst surveyor, then check the numerical runtime.
+Use a fresh 64-bit Python 3.12 environment. Install the release wheels for FitBurst and burst surveyor, then check the numerical runtime.
 
 ```sh
-python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/fitburst-0.1.0-py3-none-any.whl https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/burst_surveyor-0.1.0-py3-none-any.whl
 python -m burstsurveyor doctor
 ```
 
 ## Fit an observation
 
 ```sh
-python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
-python -m burstsurveyor verify run
+burstsurveyor example two-pulse.npz
+burstsurveyor fit two-pulse.npz run --workers 1
+burstsurveyor verify run
 ```
 
 The default mode fits dedispersed bursts without periodic wrapping. Supply one [NPZ file](reference.md) or a directory of NPZ files and a new output directory. To resume an interrupted run, repeat the fit command with the same inputs, mode and worker count and add `--resume`.
@@ -23,7 +24,7 @@ The default mode fits dedispersed bursts without periodic wrapping. Supply one [
 For the bundled example, the two-component reconstruction is shown in the [README](../README.md#fit-an-observation). To plot the exported fit from this run, use the event ID from `results.json`.
 
 ```sh
-python -m burstsurveyor plot run --event 179014e0591b80d892ece0ac --input examples/two-pulse.npz --out two-pulse-fit.png
+python -m burstsurveyor plot run --event 179014e0591b80d892ece0ac --input two-pulse.npz --out two-pulse-fit.png
 ```
 
 ## Folded pulsar profiles
@@ -39,7 +40,7 @@ python -m burstsurveyor fit folded-profile.npz pulsar-run --mode pulsar --worker
 To generate figures and screen the residuals as part of a fit, use `prepare` with a new working directory.
 
 ```sh
-python -m burstsurveyor prepare examples/two-pulse.npz review-run --workers 1
+python -m burstsurveyor prepare two-pulse.npz review-run --workers 1
 ```
 
 Open `review-run/review/review.html` to inspect the observed spectrum, pulse profile, fitted reconstruction and residuals. In bounded mode, `prepare` can test one additional component per event when a peak is missing from the fit and leaves positive residuals in both channel folds. The queue shows the selected reconstruction after the follow-up. The initial fit is in `review-run/fit`. Resume interrupted preparation with the same arguments and `--resume`.

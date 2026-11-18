@@ -4,12 +4,13 @@ burst surveyor fits dedispersed radio bursts and folded pulsar profiles with Fit
 
 ## Fit an observation
 
-From the repository root, install the package in a fresh 64-bit Python 3.12 environment and fit the bundled two-pulse example.
+In a fresh 64-bit Python 3.12 environment, install burst surveyor and FitBurst, then generate and fit the two-pulse example.
 
 ```sh
-python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
-python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
-python -m burstsurveyor verify run
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/fitburst-0.1.0-py3-none-any.whl https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.0/burst_surveyor-0.1.0-py3-none-any.whl
+burstsurveyor example two-pulse.npz
+burstsurveyor fit two-pulse.npz run --workers 1
+burstsurveyor verify run
 ```
 
 `run/results.json` records the fit status, component count and scores for each observation. For an exported fit, the `prediction` field gives the path to the reconstructed array relative to `run`. To fit several observations, pass a directory of [NPZ files](docs/reference.md) in place of the example. Use a new output directory for each run.
@@ -63,3 +64,7 @@ The two fits follow the main pulse and interpulse. The largest difference betwee
 ## Optional review
 
 To generate figures and screen for possible missed components, use `prepare` as described in the [guide](docs/guide.md#figures-and-residuals). For review with a coding agent, see [AI-assisted review](docs/ai-assisted-review/README.md).
+
+## Citation
+
+If you publish results obtained with burst surveyor, cite the software and the FitBurst paper by Fonseca et al. (2024). [Software citation](CITATION.cff) · [FitBurst paper](https://doi.org/10.3847/1538-4365/ad27d6)
