@@ -1,6 +1,6 @@
 """FitBurst reconstruction of radio-burst dynamic spectra."""
 
-__version__ = "0.0.0"
+__version__ = "0.1.0"
 
 
 def fit(inputs, output, *, workers=3, resume=False):
