@@ -47,6 +47,72 @@ def run_isolated(work, args, *, scratch, timeout=EVENT_WATCHDOG_SECONDS):
             process.close()
 
 
+def _serve_worker(connection):
+    configure_worker()
+    with connection:
+        while True:
+            try:
+                result_path, work, args = connection.recv()
+            except EOFError:
+                return
+            write(result_path, work(*args))
+            connection.send(None)
+
+
+class IsolatedWorker:
+    """Keep one killable interpreter warm between sequential jobs."""
+
+    def __init__(self):
+        self.process = None
+        self.connection = None
+
+    def _start(self):
+        ctx = multiprocessing.get_context("spawn")
+        connection, child = ctx.Pipe()
+        process = ctx.Process(target=_serve_worker, args=(child,))
+        try:
+            process.start()
+        except BaseException:
+            connection.close()
+            process.close()
+            raise
+        finally:
+            child.close()
+        self.process, self.connection = process, connection
+
+    def run(self, work, args, *, scratch, timeout=EVENT_WATCHDOG_SECONDS):
+        with tempfile.TemporaryDirectory(dir=scratch) as temporary:
+            result_path = Path(temporary) / "result.json"
+            try:
+                if self.process is None:
+                    self._start()
+                self.connection.send((result_path, work, args))
+                if not self.connection.poll(timeout):
+                    raise TimeoutError(f"Emergency event watchdog exceeded {timeout:g} seconds")
+                self.connection.recv()
+                return read(result_path)
+            except (EOFError, BrokenPipeError) as exc:
+                self.close()
+                raise RuntimeError("Isolated event worker exited without a result") from exc
+            except BaseException:
+                self.close()
+                raise
+
+    def close(self):
+        if self.process is None:
+            return False
+        self.connection.close()
+        self.process.join(0.2)
+        if self.process.is_alive():
+            self.process.terminate()
+            self.process.join(2)
+            if self.process.is_alive():
+                self.process.kill()
+                self.process.join()
+        self.process.close()
+        self.process = self.connection = None
+        return True
+
 
 def estimate_bytes(event):
     return MIB * max(
@@ -72,6 +138,8 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=F
     smallest_available = psutil.virtual_memory().available
     idle_start = None
     pool = None
+    warm = [IsolatedWorker() for _ in range(workers)] if isolated and os.name == "nt" else []
+    idle_workers = warm.copy()
     try:
         while pending or active:
             free = psutil.virtual_memory().available
@@ -89,9 +157,13 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=F
                     event = pending.pop(index)
                     task = make_task(event)
                     idle_start = None
+                    child = idle_workers.pop() if warm else None
                     if workers == 1:
                         peak = 1
-                        commit(event, task, work(task))
+                        result = work(task, run=child.run) if child else work(task)
+                        commit(event, task, result)
+                        if child:
+                            idle_workers.append(child)
                     else:
                         if pool is None:
                             # The bounded worker already supervises a child process per event.
@@ -103,8 +175,9 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=F
                                     mp_context=multiprocessing.get_context("spawn"),
                                 )
                             )
-                        future = pool.submit(work, task)
-                        active[future] = (event, task)
+                        options = {"run": child.run} if child else {}
+                        future = pool.submit(work, task, **options)
+                        active[future] = (event, task, child)
                         if len(active) > peak:
                             peak = len(active)
                             time.sleep(0.25)
@@ -112,13 +185,19 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=F
             if active:
                 done, _ = wait(active, timeout=0.5, return_when=FIRST_COMPLETED)
                 for future in done:
-                    event, task = active.pop(future)
+                    event, task, child = active.pop(future)
                     commit(event, task, future.result())
+                    if child:
+                        idle_workers.append(child)
                 continue
             if pool is not None:
                 # Idle imported workers can prevent even the smallest remaining event from fitting.
                 pool.shutdown(wait=True)
                 pool = None
+                for child in warm:
+                    child.close()
+                continue
+            if warm and warm[0].close():
                 continue
             idle_start = idle_start if idle_start is not None else time.monotonic()
             if time.monotonic() - idle_start >= MEMORY_WAIT_SECONDS:
@@ -138,4 +217,6 @@ def dispatch(events, workers, make_task, work, commit, *, defer=None, isolated=F
     finally:
         if pool is not None:
             pool.shutdown(wait=True, cancel_futures=True)
+        for child in warm:
+            child.close()
     return {"peak_active": peak, "minimum_available_mib": smallest_available / MIB}

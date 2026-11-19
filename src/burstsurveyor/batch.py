@@ -170,11 +170,11 @@ def _run_task(task):
     return result
 
 
-def _run_bounded_task(task):
+def _run_bounded_task(task, *, run=None):
     stage, _, scratch, _, event, *_ = task
     started = time.monotonic()
     try:
-        return run_isolated(_run_task, (task,), scratch=scratch.parent)
+        return (run or run_isolated)(_run_task, (task,), scratch=scratch.parent)
     except TimeoutError as exc:
         # The worker may have written scratch files before it got stuck.
         shutil.rmtree(scratch)

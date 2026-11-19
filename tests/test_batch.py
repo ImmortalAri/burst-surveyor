@@ -174,6 +174,23 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(result, "42")
             self.assertEqual(list(scratch.iterdir()), [])
 
+    def test_reused_worker_is_replaced_after_a_watchdog_timeout(self):
+        from os import getpid
+
+        worker = _dispatch.IsolatedWorker()
+        with TemporaryDirectory() as tmp:
+            scratch = Path(tmp)
+            try:
+                first = worker.run(getpid, (), scratch=scratch, timeout=10)
+                self.assertEqual(worker.run(getpid, (), scratch=scratch, timeout=10), first)
+                with self.assertRaisesRegex(TimeoutError, "Emergency event watchdog"):
+                    worker.run(time.sleep, (30,), scratch=scratch, timeout=0.5)
+                self.assertIsNone(worker.process)
+                self.assertNotEqual(worker.run(getpid, (), scratch=scratch, timeout=10), first)
+                self.assertEqual(list(scratch.iterdir()), [])
+            finally:
+                worker.close()
+
     def test_timed_out_event_does_not_commit_a_partial_prediction(self):
         with TemporaryDirectory() as tmp:
             scratch = Path(tmp) / "worker"
