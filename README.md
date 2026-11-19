@@ -1,6 +1,6 @@
 # burst surveyor
 
-burst surveyor fits dedispersed radio bursts and folded pulsar profiles with FitBurst. It automatically fits candidate models to the observed intensity and exports the selected reconstruction on the original frequency and time grid.
+burst surveyor fits dedispersed radio bursts and folded pulsar profiles with [FitBurst](https://github.com/CHIMEFRB/fitburst). It automatically fits candidate models to the observed intensity and exports the selected reconstruction on the original frequency and time grid.
 
 ## How the fit works
 
@@ -77,4 +77,4 @@ To generate figures and screen for possible missed components, use `prepare` as 
 
 ## Citation
 
-If you publish results obtained with burst surveyor, cite the software and the FitBurst paper by Fonseca et al. (2024). [Software citation](CITATION.cff) · [FitBurst paper](https://doi.org/10.3847/1538-4365/ad27d6)
+If you publish results obtained with burst surveyor, cite the software and the FitBurst paper by Fonseca et al. (2024). [Software citation](CITATION.cff) · [FitBurst repository](https://github.com/CHIMEFRB/fitburst) · [FitBurst paper](https://doi.org/10.3847/1538-4365/ad27d6)
