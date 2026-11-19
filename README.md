@@ -18,6 +18,8 @@ The fit recovers two components near 24.5 and 36.5 ms and selects zero scatterin
 
 For a burst, the search averages usable frequency channels over the full band, halves and quarters. It looks for peaks at several smoothing widths. Their positions and widths supply starting estimates for Gaussian components, which are fitted jointly to the dynamic spectrum. The search tests models with and without a scattering tail and checks the residuals for missed emission. It scores each candidate by the reduction in noise-weighted squared error on the original grid and favors simpler fits when scores are close.
 
+The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the exported FitBurst parameters.
+
 In BaseCat2 event 156410110, the initial search found three peaks. After fitting them, a peak near **24.7 ms** remained in the residual (bottom middle). That peak supplied the starting time for a fourth component. After refitting, most of the emission at that time is gone from the residual (bottom right). Gray bands mark masked channels.
 
 [![Observed profile and dynamic spectrum at left. At right, the three- and four-component models are shown above their residuals on the same scales.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
