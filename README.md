@@ -8,7 +8,7 @@ The input is a dynamic spectrum, the observed intensity as a function of frequen
 
 The default burst search uses those peaks to initialize Gaussian components, then fits their sum to the dynamic spectrum. Each component has its own arrival time, width, fluence and spectrum. The components share a residual dispersion measure. The search tries models with and without a scattering tail and checks the residuals for structure that could justify another component.
 
-Candidates are compared on the original frequency and time grid. The score measures how much the model reduces the noise-weighted sum of squared residuals relative to a baseline alone. Selection penalizes extra parameters and favors a simpler model when scores are close. FitBurst then renders the selected model on the original grid, and burst surveyor scores the exported reconstruction. The run records the alternatives so the choice can be inspected. [Selection details](docs/selection.md#default-burst-search)
+Candidates are compared on the original frequency and time grid. The score measures how much the model reduces the noise-weighted sum of squared residuals relative to a baseline alone. Selection penalizes extra parameters and favors a simpler model when scores are close. FitBurst then renders the selected model on the original grid, and burst surveyor scores the exported reconstruction. The run records the alternatives so the choice can be inspected. [See the search on a real burst](#event-156410110) · [Selection details](docs/selection.md#default-burst-search)
 
 ## Fit an observation
 
@@ -73,6 +73,44 @@ The single scattered pulse gives a gain of 5417.72. Two Gaussian components give
 The three BaseCat2 examples compare the automated fit with a human reference on the same time grid. Each figure shows the pulse profiles, the observed dynamic spectrum, both model spectra and the residuals (observed minus modeled intensity). Gray bands mark masked channels. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
 
 ### Event 156410110
+
+The initial search found three peaks. After fitting them, the residual still showed emission around 24.7 and 16.3 ms. Open the fits in sequence to see how the search accounted for each feature. The panels show the same time window and intensity scales throughout.
+
+<details open>
+<summary>Three components · initial peaks</summary>
+
+The search found peaks near 18.7, 21.6 and 30.1 ms. Of the two three-component trials, the model with scattering gave the higher gain. It follows the tails of those peaks but misses most of the emission near 24.7 ms.
+
+![Three-component fit with scattering. The profile and residual spectrum show a missed peak near 24.7 ms.](examples/event-156410110-views/3-components.png)
+
+</details>
+
+<details>
+<summary>Four components · peak near 24.7 ms</summary>
+
+A positive residual supplied the starting point for a fourth component. After refitting, the gain rose from 6928 to 8561. A smaller peak near 16.3 ms remained.
+
+![Four-component fit and residual. The model now follows the peak near 24.7 ms but misses the earlier feature.](examples/event-156410110-views/4-components.png)
+
+</details>
+
+<details>
+<summary>Five components · earlier peak near 16.3 ms</summary>
+
+A second residual search added a component at the earlier peak. The gain rose to 9176.
+
+![Five-component fit with the earlier peak included.](examples/event-156410110-views/5-components.png)
+
+</details>
+
+<details>
+<summary>Six components · frequency structure of the early peak</summary>
+
+The search tried splitting the early component into two with different spectra. Their fitted arrival times at 600 MHz were 16.20 and 16.35 ms. The gain rose to 9228, a smaller improvement than either of the previous additions. This trial was selected for export. The two overlapping terms describe how the early feature varies across the band. The number of physical pulses remains uncertain.
+
+![Exported six-component fit. Two overlapping terms model the frequency structure of the early feature.](examples/event-156410110-views/6-components.png)
+
+</details>
 
 Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference.
 
