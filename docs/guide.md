@@ -21,7 +21,7 @@ The default mode fits dedispersed bursts without periodic wrapping. Supply one [
 
 `run/results.json` contains one entry per observation. For an exported fit, the entry gives the component count, scattering model, fit scores and path to the prediction NPZ. Modeled intensity is `prediction + baseline[:, None]` on the original pixels. An entry without an export records the status and reasons. The [reference](reference.md#export) describes the arrays and units.
 
-For the bundled example, the two-component reconstruction is shown in the [README](../README.md#fit-an-observation). To plot the exported fit from this run, use the event ID from `results.json`.
+For the bundled example, the two-component reconstruction is shown in the [fit gallery](../examples/README.md#bundled-two-pulse-example). To plot the exported fit from this run, use the event ID from `results.json`.
 
 ```sh
 python -m burstsurveyor plot run --event 179014e0591b80d892ece0ac --input two-pulse.npz --out two-pulse-fit.png
