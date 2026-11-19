@@ -23,9 +23,48 @@ burstsurveyor verify run
 
 `run/results.json` records the fit status, component count and scores for each observation. For an exported fit, the `prediction` field gives the path to the reconstructed array relative to `run`. To fit several observations, pass a directory of [NPZ files](docs/reference.md) in place of the example. Use a new output directory for each run.
 
-The example contains pulses centred at 24.5 and 36.5 ms. The search finds the first peak in the full-band profile and the second in the lower half of the band. A single scattered component at the first peak gives a gain of 5417.72. Two Gaussian components give 7085.52. Adding a scattering tail to the two-component model gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms.
+### Explore the two-pulse fit
 
-In the figure, compare the observed and modeled spectra at the second peak. Both concentrate the later emission at lower frequencies. The residual panel shows what remains after subtracting the model.
+The search finds a peak at 24.5 ms in the full band and a weaker peak at 36.5 ms in the lower half of the band. It tries both a single scattered pulse and a model with two pulses. Open the views below to compare them. All five use the same time, frequency and intensity scales.
+
+<details open>
+<summary>Observation</summary>
+
+![Observed intensity after baseline subtraction. The later pulse is brightest near 490 MHz.](examples/two-pulse-views/observation.png)
+
+</details>
+
+<details>
+<summary>One-component fit</summary>
+
+![Single scattered component fitted at the brighter peak near 24.5 ms.](examples/two-pulse-views/one-component.png)
+
+</details>
+
+<details>
+<summary>One-component residual</summary>
+
+Subtracting the single scattered pulse leaves a patch of emission near 36.5 ms and 490 MHz. Both peaks were found in the initial search. This residual shows what the single component misses.
+
+![Residual intensity with the later, low-frequency pulse still visible.](examples/two-pulse-views/one-component-residual.png)
+
+</details>
+
+<details>
+<summary>Selected two-component fit</summary>
+
+![Two fitted Gaussian components, with the later component concentrated at lower frequencies.](examples/two-pulse-views/two-components.png)
+
+</details>
+
+<details>
+<summary>Two-component residual</summary>
+
+![Residual intensity after subtracting the selected fit. The patch near 36.5 ms is largely removed.](examples/two-pulse-views/two-component-residual.png)
+
+</details>
+
+The single scattered pulse gives a gain of 5417.72. Two Gaussian components give 7085.52, and adding scattering gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms.
 
 ![Two-pulse synthetic observation, automated profile and model spectrum, and observed minus modeled intensity.](examples/two-pulse-fit.png)
 
