@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-pulse example · burst surveyor</title>
+<link rel="stylesheet" href="fit-viewer.css">
+<script src="fit-viewer.js" defer></script>
+</head>
+<body>
+<nav aria-label="Examples"><a href="https://github.com/ImmortalAri/burst-surveyor#how-the-fit-works">burst surveyor README</a><a href="index.html">BaseCat2 event 156410110</a></nav>
+<main>
+<h1>Two-pulse example</h1>
+<p>The initial search found both peaks, one in the full band and one in the lower half. Compare the trial models and their residuals on the same intensity scale.</p>
+<figure id="stage-0" data-stage="Observation">
+  <img src="figures/two-pulse-views/observation.png" width="1064" height="378" alt="The bright pulse is centred at 24.5 ms. The later pulse at 36.5 ms is strongest near 490 MHz.">
+  <figcaption>The bright pulse is centred at 24.5 ms. The later pulse at 36.5 ms is strongest near 490 MHz.</figcaption>
+</figure>
+<figure id="stage-1" data-stage="One-component fit">
+  <img src="figures/two-pulse-views/one-component.png" width="1064" height="378" alt="A single scattered component fits the brighter pulse. Its gain is 5417.72.">
+  <figcaption>A single scattered component fits the brighter pulse. Its gain is 5417.72.</figcaption>
+</figure>
+<figure id="stage-2" data-stage="One-component residual">
+  <img src="figures/two-pulse-views/one-component-residual.png" width="1064" height="378" alt="Subtracting that model leaves the later pulse visible near 36.5 ms and 490 MHz.">
+  <figcaption>Subtracting that model leaves the later pulse visible near 36.5 ms and 490 MHz.</figcaption>
+</figure>
+<figure id="stage-3" data-stage="Two-component fit">
+  <img src="figures/two-pulse-views/two-components.png" width="1064" height="378" alt="The selected model has two Gaussian components without scattering. Their fitted arrival times at 600 MHz are 24.49 and 36.58 ms.">
+  <figcaption>The selected model has two Gaussian components without scattering. Their fitted arrival times at 600 MHz are 24.49 and 36.58 ms.</figcaption>
+</figure>
+<figure id="stage-4" data-stage="Two-component residual">
+  <img src="figures/two-pulse-views/two-component-residual.png" width="1064" height="378" alt="Subtracting the two-component fit removes most of the emission at the second peak.">
+  <figcaption>Subtracting the two-component fit removes most of the emission at the second peak.</figcaption>
+</figure>
+</main>
+</body>
+</html>
