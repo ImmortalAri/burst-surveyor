@@ -2,6 +2,14 @@
 
 burst surveyor fits dedispersed radio bursts and folded pulsar profiles with FitBurst. It automatically fits candidate models to the observed intensity and exports the selected reconstruction on the original frequency and time grid.
 
+## How the fit works
+
+The input is a dynamic spectrum, the observed intensity as a function of frequency and time. To find starting parameters, burst surveyor averages the usable channels into time profiles over the full band, halves and quarters. It searches each profile for peaks at several smoothing widths. A pulse confined to the lower half of the band can stand out there even when it is weak in the full-band average.
+
+The default burst search uses those peaks to initialize Gaussian components, then fits their sum to the dynamic spectrum. Each component has its own arrival time, width, fluence and spectrum. The components share a residual dispersion measure. The search tries models with and without a scattering tail and checks the residuals for structure that could justify another component.
+
+Candidates are compared on the original frequency and time grid. The score measures how much the model reduces the noise-weighted sum of squared residuals relative to a baseline alone. Selection penalizes extra parameters and favors a simpler model when scores are close. FitBurst then renders the selected model on the original grid, and burst surveyor scores the exported reconstruction. The run records the alternatives so the choice can be inspected. [Selection details](docs/selection.md#default-burst-search)
+
 ## Fit an observation
 
 In a fresh 64-bit Python 3.12 environment, install burst surveyor and FitBurst, then generate and fit the two-pulse example.
@@ -15,7 +23,9 @@ burstsurveyor verify run
 
 `run/results.json` records the fit status, component count and scores for each observation. For an exported fit, the `prediction` field gives the path to the reconstructed array relative to `run`. To fit several observations, pass a directory of [NPZ files](docs/reference.md) in place of the example. Use a new output directory for each run.
 
-The example contains pulses centred at 24.5 and 36.5 ms. The fit recovers two components. The later pulse is strongest at lower frequencies.
+The example contains pulses centred at 24.5 and 36.5 ms. The search finds the first peak in the full-band profile and the second in the lower half of the band. A single scattered component at the first peak gives a gain of 5417.72. Two Gaussian components give 7085.52. Adding a scattering tail to the two-component model gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms.
+
+In the figure, compare the observed and modeled spectra at the second peak. Both concentrate the later emission at lower frequencies. The residual panel shows what remains after subtracting the model.
 
 ![Two-pulse synthetic observation, automated profile and model spectrum, and observed minus modeled intensity.](examples/two-pulse-fit.png)
 
