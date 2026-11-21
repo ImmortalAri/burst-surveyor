@@ -5,7 +5,7 @@
 Use a fresh 64-bit Python 3.12 environment. Install the release wheels for FitBurst and burst surveyor, then check the numerical runtime.
 
 ```sh
-python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.1/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.1/fitburst-0.1.0-py3-none-any.whl https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.1.1/burst_surveyor-0.1.1-py3-none-any.whl
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/fitburst-0.1.0-py3-none-any.whl https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/burst_surveyor-0.2.0-py3-none-any.whl
 python -m burstsurveyor doctor
 ```
 

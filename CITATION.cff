@@ -3,7 +3,7 @@ message: "Cite burst surveyor and FitBurst."
 title: "burst surveyor"
 repository-code: "https://github.com/immortalari/burst-surveyor"
 type: software
-version: "0.1.1"
+version: "0.2.0"
 authors:
   - name: "immortalari"
 license: MIT

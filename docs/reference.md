@@ -13,9 +13,23 @@
 | `is_dedispersed` | `true` |
 | `period_s` | Required only for pulsar mode: rotation period in seconds, matching `data_full.shape[1] * res_time` within relative tolerance 1e-9. |
 
-All frequency channels share one time axis in the NPZ fit. CHIME/FRB Catalog 2 intensity data retain small channel-dependent offsets from rounding to the nearest time sample during dedispersion. In a targeted check of 16 narrow bursts flagged for poor reconstruction, evaluating the same fitted parameters at the recorded channel offsets reduced the weighted residual error in all 16. Check the original timestamps when interpreting residuals from bright, narrow pulses. [Catalog 2 timing convention, Appendix C](https://arxiv.org/html/2601.09399#A3)
-
 Pulsar mode expects one complete folded rotation. A cropped pulse, multiple consecutive rotations or an unfolded single-pulse observation should not be labeled as a complete rotation. Missing or incompatible period metadata is rejected rather than inferred from the fit.
+
+## Channel timing
+
+The default bounded burst fit uses a shared time axis unless the NPZ includes
+`channel_time_offset_s`, a floating-point array of shape `(num_freq,)`.
+Supply one measured, finite offset in seconds per frequency channel, after
+removing the dispersion delay already applied to the data. Sample `j` in
+channel `i` is evaluated at `j * res_time + channel_time_offset_s[i]` relative
+to the nominal time origin. A positive offset means the channel was sampled
+later. This representation assumes a constant offset per channel and a common
+sample interval. [CHIME/FRB Catalog 2 timing convention](https://arxiv.org/html/2601.09399#A3)
+
+Peak discovery uses the observed time bins. The coarse search averages the model
+over four noise-weighted offset quantiles per frequency group. Native fitting,
+residual scoring and FitBurst export use each channel's offset. The prediction
+NPZ includes the offsets alongside the nominal `time_s` axis.
 
 ## Export
 
@@ -40,19 +54,3 @@ timed-out initial fit or export is recorded as failed and the batch continues.
 A timed-out retry records the failure alongside the preserved baseline.
 Schedule and CPU speed affect completion time. Compare the exported
 reconstruction and model parameters with numerical tolerances across platforms.
-
-## Experimental channel timing for bounded burst fits
-
-On a uniformly sampled, dedispersed observation, the optional NPZ member
-`channel_time_offset_s` is a finite floating-point vector with one entry per
-frequency channel. Sample `j` in channel `i` is evaluated at
-`j * res_time + channel_time_offset_s[i]` relative to the nominal time origin.
-Supply the sampling offset after removing the dispersion delay already applied
-to the data. A positive offset means the channel was sampled later. The format
-assumes a constant offset per channel and a common integration duration.
-
-Discovery uses the observed time bins. The coarse search averages the model
-over four noise-weighted phase quantiles per frequency group. Native residuals,
-model selection and the FitBurst export use each channel's offset. The export
-includes the offset vector alongside the nominal time axis. Omit the member
-for a shared time grid.

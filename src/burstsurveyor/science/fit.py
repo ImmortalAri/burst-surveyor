@@ -9,7 +9,7 @@ import psutil
 from threadpoolctl import threadpool_limits
 
 from .bounded import refine
-from .engine import Event, Limit, optimizer
+from .engine import Event, InputError, Limit, optimizer
 from .input import load_raw
 from .model import pulse
 from .native import finalize
@@ -23,11 +23,11 @@ def load_config():
 
 
 def _event(raw, entry, config, mode):
-    event = Event(raw, entry["grid"], config)
     offsets = entry.get("channel_time_offset_s")
+    if offsets is not None and mode != "bounded":
+        raise InputError("channel_time_offset_s requires bounded burst mode")
+    event = Event(raw, entry["grid"], config)
     if offsets is not None:
-        if mode != "bounded":
-            raise ValueError("Experimental channel timing requires bounded burst mode")
         event.coords.channel_time_offset_bins = offsets / event.coords.dt
     return event
 

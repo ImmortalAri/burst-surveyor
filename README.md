@@ -12,7 +12,7 @@ burstsurveyor fit two-pulse.npz run --workers 1
 burstsurveyor verify run
 ```
 
-The fit recovers two components near 24.5 and 36.5 ms and selects zero scattering. `run/results.json` records the component count, scores and path to the reconstruction. To fit your own data, replace `two-pulse.npz` with an [observation in NPZ format](docs/reference.md) or a directory of observations. Use a new output directory for each run.
+The fit recovers two components near 24.5 and 36.5 ms and selects zero scattering. `run/results.json` records the component count, scores and path to the reconstruction. To fit your own data, replace `two-pulse.npz` with an [observation in NPZ format](docs/reference.md) or a directory of observations. Use a new output directory for each run. The default burst fit uses [measured channel time offsets](docs/reference.md#channel-timing) when the input supplies them.
 
 ## How the fit works
 

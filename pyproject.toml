@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "burst-surveyor"
-version = "0.1.1"
+version = "0.2.0"
 description = "Automated fitting of radio bursts and folded pulsar profiles with FitBurst"
 readme = "README.md"
 license = "MIT"

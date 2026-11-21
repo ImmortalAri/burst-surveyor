@@ -45,3 +45,31 @@ class ChannelTimingTests(unittest.TestCase):
             offsets=np.linspace(-.0004,.0004,21)
             write(offsets)
             np.testing.assert_array_equal(load_raw(path,tmp)[1]['channel_time_offset_s'], offsets)
+
+    def test_fit_exports_the_supplied_time_grid(self):
+        from burstsurveyor.science.fit import export_event, fit_event, load_event
+        from burstsurveyor.science.native import _components
+        from fitburst.analysis.model import SpectrumModeler
+
+        example = Path(__file__).resolve().parents[1] / "examples" / "two-pulse.npz"
+        with TemporaryDirectory() as tmp, np.load(example) as bundled:
+            raw = bundled["data_full"]
+            grid = bundled["metadata"]
+            offsets = np.linspace(-0.0002, 0.0002, raw.shape[0])
+            path = Path(tmp) / "observation.npz"
+            np.savez(path, data_full=raw, metadata=grid, channel_time_offset_s=offsets)
+            with self.assertRaisesRegex(InputError, "bounded burst mode"):
+                load_event(path, tmp, mode="pulsar")
+            fitted = fit_event(path, tmp)
+            dest = Path(tmp) / "prediction.npz"
+            receipt = export_event(path, fitted, dest, tmp)
+            self.assertEqual(receipt["status"], "provisional")
+            with np.load(dest) as output:
+                np.testing.assert_allclose(output["channel_time_offset_s"], offsets, atol=0)
+                channels = output["channels"][::3]
+                times = output["time_s"][None, :] + offsets[channels, None]
+                parts = _components(SpectrumModeler, receipt["fitburst_parameters"],
+                                    output["frequency"][channels], times,
+                                    receipt["selected"]["n"], receipt["quadrature"])
+                np.testing.assert_allclose(output["prediction"][channels], parts.sum(axis=2),
+                                           rtol=1e-6, atol=1e-8)
