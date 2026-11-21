@@ -13,6 +13,8 @@
 | `is_dedispersed` | `true` |
 | `period_s` | Required only for pulsar mode: rotation period in seconds, matching `data_full.shape[1] * res_time` within relative tolerance 1e-9. |
 
+All frequency channels share one time axis in the NPZ fit. CHIME/FRB Catalog 2 intensity data retain small channel-dependent offsets from rounding to the nearest time sample during dedispersion. In a targeted check of 16 narrow bursts flagged for poor reconstruction, evaluating the same fitted parameters at the recorded channel offsets reduced the weighted residual error in all 16. Check the original timestamps when interpreting residuals from bright, narrow pulses. [Catalog 2 timing convention, Appendix C](https://arxiv.org/html/2601.09399#A3)
+
 Pulsar mode expects one complete folded rotation. A cropped pulse, multiple consecutive rotations or an unfolded single-pulse observation should not be labeled as a complete rotation. Missing or incompatible period metadata is rejected rather than inferred from the fit.
 
 ## Export

@@ -36,5 +36,5 @@ namespaces = false
 burstsurveyor = ["science/*.json", "data/*.json"]
 
 [tool.setuptools.data-files]
-"share/burst-surveyor/docs" = ["docs/methods.md", "docs/reference.md", "docs/review-queue.md", "docs/selection.md", "docs/guide.md"]
+"share/burst-surveyor/docs" = ["docs/methods.md", "docs/reference.md", "docs/review-queue.md", "docs/selection.md", "docs/guide.md", "docs/validation.md"]
 "share/burst-surveyor/docs/ai-assisted-review" = ["docs/ai-assisted-review/README.md"]

@@ -28,6 +28,8 @@ The search then found an earlier feature near 16.3 ms. The selected fit used six
 
 The [fit gallery](examples/README.md) includes other fast radio bursts, folded pulsar profiles and the bundled example. The [selection guide](docs/selection.md) describes the search in each fitting mode.
 
+The [validation results](docs/validation.md) show how closely the reconstructions match the catalog fits and how reliably the search recovers individual pulses.
+
 ## Reviewing fits
 
 Use [`prepare`](docs/guide.md#figures-and-residuals) to generate figures and screen for possible missed components. You can inspect the results yourself or use the [optional AI-assisted review instructions](docs/ai-assisted-review/README.md).
