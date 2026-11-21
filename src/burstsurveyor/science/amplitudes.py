@@ -39,9 +39,7 @@ def training_pivots(data, x, n, scatter):
         safe = comp.copy()
         z = data.e.coords.z[data.reps]
         safe[0] = -float(np.max(safe[3] * z + safe[4] * z * z))
-        p = pulse(
-            np.r_[safe, x[5 * n :]], 1, scatter, data.e.coords, data.reps, data.t
-        )[0]
+        p = data.grouped_pulse(np.r_[safe, x[5 * n :]], 1, scatter)[0]
         p -= p.mean(axis=1, keepdims=True)
         correlation = np.maximum(0.0, np.sum(p * data.y, axis=1))
         energy = np.sum(p * p, axis=1) * data.group_norm**2

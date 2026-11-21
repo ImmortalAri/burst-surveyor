@@ -153,6 +153,16 @@ def _inspect(archive, size):
             )
         if stream.tell() + math.prod(shape) * dtype.itemsize != expanded:
             raise InputError("Intensity payload length disagrees with its NPY header")
+    offset_key = "channel_time_offset_s.npy"
+    if offset_key in archive.namelist():
+        info = archive.getinfo(offset_key)
+        if archive.namelist().count(offset_key) != 1 or info.file_size > MAX_MEMBER:
+            raise InputError("Invalid channel timestamp member")
+        with archive.open(offset_key) as stream:
+            off_shape, _, off_dtype = _header(stream)
+            if (off_shape != (shape[0],) or off_dtype.kind != "f"
+                    or stream.tell() + shape[0] * off_dtype.itemsize != info.file_size):
+                raise InputError("Expected one floating-point time offset per frequency channel")
     meta = _metadata(archive.read("metadata.npy"))
     grid = {}
     if "period_s" in meta:
@@ -231,6 +241,12 @@ def load_raw(path, scratch_directory):
             entry = _inspect(archive, len(payload))
             with archive.open("data_full.npy") as raw_file:
                 raw = np.lib.format.read_array(raw_file, allow_pickle=False)
+            if "channel_time_offset_s.npy" in archive.namelist():
+                with archive.open("channel_time_offset_s.npy") as stream:
+                    offsets = np.lib.format.read_array(stream, allow_pickle=False).astype(float)
+                if not np.isfinite(offsets).all() or not np.isfinite(offsets / entry["grid"]["res_time"]).all():
+                    raise InputError("Nonfinite channel time offset")
+                entry["channel_time_offset_s"] = offsets
         entry["source_sha256"] = hashlib.sha256(payload).hexdigest()
         return raw, entry
     except InputError:

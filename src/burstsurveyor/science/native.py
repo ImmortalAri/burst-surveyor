@@ -57,6 +57,8 @@ def _components(model_class, parameters, freq, time_s, n, quadrature):
     count = len(freq)
     if count == 1:
         freq = np.r_[freq, freq[0] + 0.001]
+        if time_s.ndim == 2:
+            time_s = np.repeat(time_s, 2, axis=0)
     model = model_class(
         freq,
         time_s,
@@ -89,7 +91,11 @@ def _score(data, row, quadrature, pulse_fn, model_class, normalize_pbf, moments=
     for start in range(0, len(data.indices), tile):
         ii = data.indices[start : start + tile]
         if getattr(data.e.coords, 'period_bins', None) is None:
-            parts = _components(model_class, parameters, data.e.frequency[ii], time_s, n, quadrature)
+            sample_times = time_s
+            offsets = getattr(data.e.coords, "channel_time_offset_bins", None)
+            if offsets is not None:
+                sample_times = time_s[None, :] + offsets[ii, None] * data.e.coords.dt
+            parts = _components(model_class, parameters, data.e.frequency[ii], sample_times, n, quadrature)
         else:
             from .model import periodic_images
             period_s = data.e.coords.period_bins * data.e.coords.dt
@@ -483,6 +489,10 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
         source_sha256=np.array(source_sha256),
         version=np.array(VERSION),
     )
+    offsets = getattr(data.e.coords, "channel_time_offset_bins", None)
+    if offsets is not None:
+        arrays["channel_time_offset_s"] = offsets * data.e.coords.dt
+        receipt["time_grid"] = "per-channel constant offsets"
     digest = _measured(stage_seconds, "publish_seconds", _publish, path, arrays)
     return receipt | dict(
         status="provisional",

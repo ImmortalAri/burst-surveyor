@@ -73,7 +73,7 @@ class Coordinates:
         }
 
 
-def _linear_pulse(x, n, scatter, coords, channels, t, derivative=False):
+def _linear_pulse(x, n, scatter, coords, channels, t, derivative=False, group_offsets=None):
     """Predict on centres t in bin units. Truncate only at negligible tail mass."""
     n_freq, n_time = (len(coords.z[channels]), len(t))
     result = np.zeros((n_freq, n_time))
@@ -81,6 +81,10 @@ def _linear_pulse(x, n, scatter, coords, channels, t, derivative=False):
     z = coords.z[channels]
     disp = coords.dispersion[channels]
     delay = x[5 * n] * disp
+    if group_offsets is not None:
+        delay = delay - group_offsets
+    elif hasattr(coords, "channel_time_offset_bins"):
+        delay = delay - coords.channel_time_offset_bins[channels]
     tau = (np.exp(x[-1]) * coords.tau_ratio[channels])[:, None] if scatter else None
     for i, (log_fluence, arrival, log_sigma, slope, curvature) in enumerate(
         x[: 5 * n].reshape(n, 5)

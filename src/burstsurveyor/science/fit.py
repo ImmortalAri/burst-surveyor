@@ -22,12 +22,22 @@ def load_config():
     )
 
 
+def _event(raw, entry, config, mode):
+    event = Event(raw, entry["grid"], config)
+    offsets = entry.get("channel_time_offset_s")
+    if offsets is not None:
+        if mode != "bounded":
+            raise ValueError("Experimental channel timing requires bounded burst mode")
+        event.coords.channel_time_offset_bins = offsets / event.coords.dt
+    return event
+
+
 def load_event(path, scratch_directory, *, mode="bounded"):
     """Build a raw-only native objective and its source/grid receipt."""
     raw, entry = load_raw(path, scratch_directory)
     config = load_config()
     config["periodic"] = mode == "pulsar"
-    return (ReconstructionData(Event(raw, entry["grid"], config)), entry)
+    return (ReconstructionData(_event(raw, entry, config, mode)), entry)
 
 
 def find_regions(d):
@@ -127,7 +137,7 @@ def _fit_event(path, scratch_directory, mode):
         origin = phase_origin(raw)
         if origin:
             raw = np.roll(raw, -origin, axis=1)
-    d = ReconstructionData(Event(raw, entry["grid"], config))
+    d = ReconstructionData(_event(raw, entry, config, mode))
     stage_seconds["data_preparation"] = time.monotonic() - stage_start
     if mode in {"scintillation", "combined"}:
         if mode == 'combined':

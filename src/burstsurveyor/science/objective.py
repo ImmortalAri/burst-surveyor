@@ -119,6 +119,17 @@ class ReconstructionData(Data):
             self.reps.append(ii[np.argmin(abs(f - np.average(f, weights=w)))])
             self.y[g] = w @ (event.raw[ii] - self.base[ii, None]) / self.group_norm[g]
         self.reps = np.asarray(self.reps)
+        offsets = getattr(event.coords, "channel_time_offset_bins", None)
+        if offsets is not None and np.any(offsets):
+            # The coarse objective fits grouped pixels. Average four equal-weight
+            # phase quantiles per group before comparing to its observed profile.
+            self.group_phases = np.empty((4, len(self.groups)))
+            for k, channels in enumerate(self.groups):
+                sorted_channels = channels[np.argsort(offsets[channels])]
+                weights = 1 / var[sorted_channels]
+                cdf = (np.cumsum(weights) - 0.5 * weights) / weights.sum()
+                self.group_phases[:, k] = np.interp(
+                    [0.125, 0.375, 0.625, 0.875], cdf, offsets[sorted_channels])
         self.profile = self.group_norm @ self.y / np.sum(self.group_norm**2)
         self.noise_scale = (
             float(np.sqrt(pool)) if (pool := np.median(var[ids])) > 0 else 1.0

@@ -6,7 +6,7 @@ import time
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
-from .model import Coordinates, DISPERSION_SECONDS_MHZ2, pulse
+from .model import Coordinates, DISPERSION_SECONDS_MHZ2, _linear_pulse, pulse
 from .amplitudes import (
     amplitude_solve,
     to_pivot,
@@ -339,6 +339,20 @@ class Data:
             curvature,
         ]
 
+    def grouped_pulse(self, x, n, scatter, derivative=False):
+        phases = getattr(self, "group_phases", None)
+        if phases is None:
+            return pulse(x, n, scatter, self.e.coords, self.reps, self.t, derivative)
+        values = []
+        gradients = []
+        for phase in phases:
+            value, gradient = _linear_pulse(x, n, scatter, self.e.coords, self.reps,
+                                            self.t, derivative, group_offsets=phase)
+            values.append(value)
+            if derivative:
+                gradients.append(gradient)
+        return np.mean(values, axis=0), np.mean(gradients, axis=0) if derivative else None
+
     def evaluation(self, x, n, scatter, native, derivative):
         self.evaluations += 1
         self.e.budget["evaluations"] += 1
@@ -350,7 +364,7 @@ class Data:
                 len(self.indices) * len(self.t) * (n if derivative else 1)
             )
         if not native:
-            p, j = pulse(x, n, scatter, self.e.coords, self.reps, self.t, derivative)
+            p, j = self.grouped_pulse(x, n, scatter, derivative)
             p -= p.mean(axis=-1, keepdims=True)
             r = (self.y - p * self.group_norm[:, None]).ravel()
             if not derivative:

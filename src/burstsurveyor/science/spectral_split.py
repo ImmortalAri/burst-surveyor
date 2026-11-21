@@ -12,7 +12,6 @@ import numpy as np
 from scipy.ndimage import gaussian_filter1d
 
 from .engine import Limit, optimizer
-from .model import pulse
 from .objective import score
 from .amplitudes import amplitude_solve
 
@@ -21,9 +20,7 @@ VERSION = "spectral-split-1"
 
 
 def _proxy(d, row):
-    p = pulse(np.asarray(row["x"]), row["n"], row["scatter"], d.e.coords, d.reps, d.t)[
-        0
-    ]
+    p = d.grouped_pulse(np.asarray(row["x"]), row["n"], row["scatter"])[0]
     return (p - p.mean(axis=1, keepdims=True)) * d.group_norm[:, None]
 
 

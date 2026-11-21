@@ -40,3 +40,19 @@ timed-out initial fit or export is recorded as failed and the batch continues.
 A timed-out retry records the failure alongside the preserved baseline.
 Schedule and CPU speed affect completion time. Compare the exported
 reconstruction and model parameters with numerical tolerances across platforms.
+
+## Experimental channel timing for bounded burst fits
+
+On a uniformly sampled, dedispersed observation, the optional NPZ member
+`channel_time_offset_s` is a finite floating-point vector with one entry per
+frequency channel. Sample `j` in channel `i` is evaluated at
+`j * res_time + channel_time_offset_s[i]` relative to the nominal time origin.
+Supply the sampling offset after removing the dispersion delay already applied
+to the data. A positive offset means the channel was sampled later. The format
+assumes a constant offset per channel and a common integration duration.
+
+Discovery uses the observed time bins. The coarse search averages the model
+over four noise-weighted phase quantiles per frequency group. Native residuals,
+model selection and the FitBurst export use each channel's offset. The export
+includes the offset vector alongside the nominal time axis. Omit the member
+for a shared time grid.
