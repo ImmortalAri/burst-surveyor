@@ -2,11 +2,11 @@
 
 ## Fast radio burst examples
 
-The three BaseCat2 examples compare the automated fit with a human reference on the same time grid. Each figure shows the pulse profiles, the observed dynamic spectrum, both model spectra and the residuals (observed minus modeled intensity). Gray bands mark masked channels. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
+The three BaseCat2 figures show archived comparisons of automated and human fits on the same time grid. Each figure shows the pulse profiles, the observed dynamic spectrum, both model spectra and the residuals (observed minus modeled intensity). Gray bands mark masked channels. Model components can overlap in time and frequency, so they should not automatically be interpreted as separate physical pulses.
 
 ### Event 156410110
 
-Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference. [Explore the automated fit stages.](https://immortalari.github.io/burst-surveyor/)
+Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference. [Explore the v0.2.0 fit stages.](https://immortalari.github.io/burst-surveyor/)
 
 ![Observed profile and residuals for event 156410110. Both model spectra and their residuals are shown below the profiles.](event-156410110-comparison.png)
 
@@ -46,6 +46,6 @@ The two fits follow the main pulse and interpulse. The largest difference betwee
 
 The search finds a peak at 24.5 ms in the full band and a weaker peak at 36.5 ms in the lower half of the band. It tries both a single scattered pulse and a model with two pulses. [Compare the observation, fits and residuals.](https://immortalari.github.io/burst-surveyor/two-pulse.html)
 
-The single scattered pulse gives a gain of 5417.72. Two Gaussian components give 7085.52, and adding scattering gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms.
+The single scattered pulse gives a gain of 5417.72. Two Gaussian components give 7085.52, and adding scattering gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms. [Expected scores and checksum of the bundled NPZ](expected.json)
 
 ![Two-pulse synthetic observation, automated profile and model spectrum, and observed minus modeled intensity.](two-pulse-fit.png)

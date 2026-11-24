@@ -1,6 +1,6 @@
 # NPZ format
 
-`data_full` holds dedispersed intensity on a uniform frequency × time grid, at least 21 × 21. The NPZ and the expanded `data_full.npy` member each have a 160 MiB limit.
+`data_full` holds dedispersed intensity indexed by frequency channel and time bin, with at least 21 of each. All channels have the same sample interval. The NPZ and the expanded `data_full.npy` member each have a 160 MiB limit.
 
 `metadata` is a scalar JSON string or legacy scalar dictionary (64 KiB limit).
 
@@ -17,8 +17,10 @@ Pulsar mode expects one complete folded rotation. A cropped pulse, multiple cons
 
 ## Channel timing
 
-The default bounded burst fit uses a shared time axis unless the NPZ includes
-`channel_time_offset_s`, a floating-point array of shape `(num_freq,)`.
+The default `bounded` mode accepts an optional top-level NPZ array,
+`channel_time_offset_s`, of floating-point values with shape `(num_freq,)`.
+Omit this array for a shared time axis. The `pulsar`, `combined` and
+`scintillation` modes require this shared-grid input.
 Supply one measured, finite offset in seconds per frequency channel, after
 removing the dispersion delay already applied to the data. Sample `j` in
 channel `i` is evaluated at `j * res_time + channel_time_offset_s[i]` relative
@@ -33,7 +35,7 @@ NPZ includes the offsets alongside the nominal `time_s` axis.
 
 ## Export
 
-Modeled intensity is `prediction + baseline[:, None]` on the original pixels. The NPZ includes channel and off-burst masks, channel variances, frequency centres in MHz and `time_s` relative to the first sample.
+Modeled intensity is `prediction + baseline[:, None]` on the original pixels. The NPZ includes channel and off-burst masks, channel variances, frequency centres in MHz and the nominal time axis `time_s` in seconds, starting at zero.
 
 Pulsar search uses an internal circular phase origin, recorded as `phase_origin_bins`; exported pixels and fitted arrival times are restored to the original input phase. Internal review intervals crossing phase zero can extend beyond the last bin and are interpreted modulo the number of time bins. Intrinsic widths are Gaussian sigma; scattering timescales refer to 600 MHz.
 

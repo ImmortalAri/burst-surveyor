@@ -49,7 +49,7 @@ For a completed `fit` run, [triage](review-queue.md#existing-runs) generates a r
 
 ## Scores and interpretation
 
-`gain` is the reduction in weighted squared error relative to a constant baseline per channel. `rms_gain` uses alternate RMS weights. A bounded rescue must pass a separate channel check and improve both scores on the exported pixels. A frequency-amplitude mismatch alone does not justify another pulse.
+In `results.json`, `gain` is the decrease in weighted squared error relative to a constant intensity per channel. `rms_gain` uses alternate RMS weights. The [catalog validation](validation.md#reconstruction) divides the decrease by the baseline error on the common comparison pixels. A bounded rescue requires temporal evidence, a separate channel check and improvement in both scores on the exported pixels.
 
 Components can overlap, and their count is not a count of physical pulses. Width, residual DM, scattering and intrinsic shape can trade off, so retaining a reconstruction does not establish unique physical parameters or calibrated uncertainties. Human fits are useful comparisons, not definitive ground truth.
 

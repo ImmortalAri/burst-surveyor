@@ -4,7 +4,7 @@ This walkthrough follows one dedispersed observation through `burstsurveyor fit`
 
 ## From intensity to starting guesses
 
-An observation supplies an array of intensity indexed by frequency channel and time sample, along with the acquisition grid. `load_raw` reads the array and grid. `ReconstructionData` identifies usable channels, estimates their noise from off-burst samples, and groups nearby channels for initial fitting. The original pixels remain available for scoring. [Input format](reference.md) and [noise estimation](../src/burstsurveyor/science/objective.py)
+An observation supplies intensity indexed by frequency channel and time sample, along with the acquisition grid. `load_raw` reads the array and grid. `ReconstructionData` identifies usable channels, estimates their noise from off-burst samples, and groups nearby channels for initial fitting. Peak discovery uses the observed time bins. When channel offsets are supplied, the native fit and export evaluate the model at each channel's sample times. [Input format and timing](reference.md#channel-timing) and [noise estimation](../src/burstsurveyor/science/objective.py)
 
 To locate a pulse, `find_regions` subtracts each usable channel’s median, divides by its estimated noise, and clips values to the interval [−5, 5] for peak finding. It forms seven time profiles by averaging the full set of usable channels, its two halves, and its four quarters in channel order. A pulse confined to part of the band can stand out in one of these narrower profiles.
 

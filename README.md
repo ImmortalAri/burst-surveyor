@@ -20,7 +20,7 @@ For a burst, the search averages usable frequency channels over the full band, h
 
 The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the exported FitBurst parameters.
 
-In BaseCat2 event 156410110, the initial search found three peaks. After fitting them, a peak near **24.7 ms** remained in the residual (bottom middle). That peak supplied the starting time for a fourth component. After refitting, most of the emission at that time is gone from the residual (bottom right). Gray bands mark masked channels.
+For BaseCat2 event 156410110, v0.2.0 found three initial peaks on the observation's shared time grid. After fitting them, a peak near **24.7 ms** remained in the residual (bottom middle). That peak supplied the starting time for a fourth component. After refitting, most of the emission at that time is gone from the residual (bottom right). Gray bands mark masked channels.
 
 [![Observed profile and dynamic spectrum at left. At right, the three- and four-component models are shown above their residuals on the same scales.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
 
@@ -28,7 +28,7 @@ The search then found an earlier feature near 16.3 ms. The selected fit used six
 
 The [fit gallery](examples/README.md) includes other fast radio bursts, folded pulsar profiles and the bundled example. The [selection guide](docs/selection.md) describes the search in each fitting mode.
 
-The [validation results](docs/validation.md) show how closely the reconstructions match the catalog fits and how reliably the search recovers individual pulses.
+The [validation results](docs/validation.md) compare reconstructions with the CHIME/FRB Catalog 2 fits and report false splits and weak-pair recovery in blind pulse injections.
 
 ## Reviewing fits
 

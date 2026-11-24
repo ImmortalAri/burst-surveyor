@@ -15,7 +15,9 @@ Whole-window gain is the fraction of noise-weighted squared error removed relati
 
 Whole-window gains agreed within 0.1 percentage point for 4,350 of 4,445 v0.2.0 fits (97.9%). Of those fits, 3,093 (71.1%) used a different component count from the catalog.
 
-In a blind BaseCat 2–like test with pulses injected into observed noise, the **v0.1.1** fitter split 151 of 260 single pulses (58.1%) and recovered both arrivals in 107 of 520 weak pairs (20.6%). Each injected arrival in a pair had to match a distinct fitted component within the smaller of two time bins and 45% of the pair separation. These rates apply to the tested strengths and separations.
+The blind BaseCat 2–like test used 780 injections into 130 observed noise backgrounds on a shared time grid. **v0.2.0 and v0.1.1** each split 151 of 260 single pulses (58.1%) and recovered both arrivals in 107 of 520 weak pairs (20.6%). The 779 exported predictions matched byte for byte between releases. Both left the same case unresolved.
+
+Pair recovery required each injected arrival to match a distinct fitted arrival within the smaller of two time bins and 45% of the pair separation. These rates apply to the tested pulse strengths and separations.
 
 ## Channel timing
 
