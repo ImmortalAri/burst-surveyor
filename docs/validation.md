@@ -15,9 +15,19 @@ Whole-window gain is the fraction of noise-weighted squared error removed relati
 
 Whole-window gains agreed within 0.1 percentage point for 4,350 of 4,445 v0.2.0 fits (97.9%). Of those fits, 3,093 (71.1%) used a different component count from the catalog.
 
-The blind BaseCat 2–like test used 780 injections into 130 observed noise backgrounds on a shared time grid. **v0.2.0 and v0.1.1** each split 151 of 260 single pulses (58.1%) and recovered both arrivals in 107 of 520 weak pairs (20.6%). The 779 exported predictions matched byte for byte between releases. Both left the same case unresolved.
+### Blind injections
 
-Pair recovery required each injected arrival to match a distinct fitted arrival within the smaller of two time bins and 45% of the pair separation. These rates apply to the tested pulse strengths and separations.
+The original BaseCat 2 noise files provide a shared time grid. For the timing test, we sampled the same 780 BaseCat 2–like pulse designs at the recorded channel times in 130 CHIME/FRB Catalog 2 intensity noise backgrounds. Both v0.2.0 fits used identical 70-bin cutouts at 0.983 ms per bin, retaining every 16th native frequency channel.
+
+| Noise data | Fitter | Fit time grid | Single pulses split | Weak pairs recovered |
+| --- | --- | --- | ---: | ---: |
+| Catalog 2 intensity | v0.2.0 | Measured per channel | 108/260 (41.5%) | 98/520 (18.8%) |
+| Catalog 2 intensity | v0.2.0 | Shared | 112/260 (43.1%) | 100/520 (19.2%) |
+| BaseCat 2 | v0.2.0 and v0.1.1 | Shared | 151/260 (58.1%) | 107/520 (20.6%) |
+
+A single pulse is split when the fitter selects at least two components. A pair is recovered when each injected arrival matches a distinct fitted arrival within the smaller of two bins and 45% of the separation. Both releases exported identical predictions for 779 original BaseCat 2 cases and left the same case unresolved.
+
+Measured timing changed the split rate by −1.5 percentage points (95% interval −5.0 to +1.9) and pair recovery by −0.4 points (−2.1 to +1.3), using a paired bootstrap over noise backgrounds. In the injected pulse window, noise-weighted squared error fell in 720 of 770 paired exports (median reduction 0.0526%). [Protocol, per-injection results and scripts](https://raw.githubusercontent.com/ImmortalAri/burst-surveyor/main/docs/data/v0.2.0-timing-injections.zip)
 
 ## Channel timing
 
