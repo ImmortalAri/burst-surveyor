@@ -29,6 +29,10 @@ A single pulse is split when the fitter selects at least two components. A pair 
 
 Measured timing changed the split rate by −1.5 percentage points (95% interval −5.0 to +1.9) and pair recovery by −0.4 points (−2.1 to +1.3), using a paired bootstrap over noise backgrounds. In the injected pulse window, noise-weighted squared error fell in 720 of 770 paired exports (median reduction 0.0526%). [Protocol, per-injection results and scripts](https://raw.githubusercontent.com/ImmortalAri/burst-surveyor/main/docs/data/v0.2.0-timing-injections.zip)
 
+## Scattering
+
+For 922 BaseCat 2 bursts with selected human fits, we held the archived Surveyor component count fixed and refitted each burst with and without a shared scattering tail. At the nominal Catalog 1 F-test threshold (*p* < 0.001), the test agreed with Surveyor’s scattering decision in 816/922 cases (88.5%). Among the 100 bursts where Surveyor and the human fit disagreed, the test agreed with the human decision in 38 cases at Surveyor’s count and 66 when using the human count and starting geometry. Extra pulse components can account for late emission that a simpler fit assigns to scattering. [Catalog 1, §3.3](https://doi.org/10.3847/1538-4365/ac33ab)
+
 ## Channel timing
 
 Measured channel offsets were available for 4,457 of 4,464 observations in the v0.2.0 run. Compared with the v0.1.1 fits on a shared time grid, v0.2.0 had higher whole-window gain in 3,732 of 4,455 fits (83.8%). On-pulse error fell in 3,679 of 4,393 bursts (83.7%), with a median reduction of 0.00849%.
