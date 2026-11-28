@@ -1,0 +1,57 @@
+{
+  "burst_surveyor_version": "0.3.0",
+  "fits": [
+    {
+      "observation": "156410110.npz",
+      "input_sha256": "acd44f67bbbc57282636fc9d02e2c325da0dbaef780bbd97f1f139631f35c977",
+      "exporter": "internal",
+      "components": 6,
+      "scattering": true,
+      "prediction_npz_sha256": "2e9d47147ef58f08f42625607a5e9f4ec0a646e529d044124592f43b4d79c79d",
+      "reference_fit_json_sha256": "2a5a577f306f55da65f50eee87a6b472a9685232afde412b4735a5b901842cba"
+    },
+    {
+      "observation": "1114368517.npz",
+      "input_sha256": "69e7ab32714d6070f038b0958bdfc2a34b17c2fa03d6d845262c83e11ed0a46d",
+      "exporter": "internal",
+      "components": 1,
+      "scattering": false,
+      "prediction_npz_sha256": "b9185e1785663bea29d772262451925b604dab76c153686e7dc67fab588bfa4f",
+      "reference_fit_json_sha256": "784fa57082db7970d6c8fbfa3490e5ff500779f17e94f92d9e2f1c7f7a60e776"
+    },
+    {
+      "observation": "300938875.npz",
+      "input_sha256": "4d7dd9ff200b3cff5104a3b14259b9ee8a70d3e32fb7ee2a2f5ecee77adfd2ce",
+      "exporter": "internal",
+      "components": 6,
+      "scattering": true,
+      "prediction_npz_sha256": "824084d98fa17826b23d9fb92700c386abed89143070b2e9f2a7066839f107ac",
+      "reference_fit_json_sha256": "e16a822fa66955e7d8e921fbbdece153c6532d16bf19584bcb1fff1798c9179d"
+    },
+    {
+      "observation": "36427698.npz",
+      "input_sha256": "a78bd1addc17c222c741c7df168f3fbed3d92e1531a4c546902563e61c4c57a7",
+      "exporter": "internal",
+      "components": 5,
+      "scattering": true,
+      "prediction_npz_sha256": "453de3cb560cb0090a1e7ae373809af8574976b4441a298915e879c937148451"
+    },
+    {
+      "observation": "J0824+0028.npz",
+      "input_sha256": "3eda69134cb8ab60ec19fbd48a7e8a1c65595e0a97473981962497f89ab10eb7",
+      "exporter": "fitburst",
+      "components": 6,
+      "scattering": true,
+      "prediction_npz_sha256": "cf42beade7b80fbceb533253a39456370e41a54e3fb44807fda5c78870dceaf4"
+    },
+    {
+      "observation": "J1849+0409.npz",
+      "input_sha256": "ee7e416d74c86e5161798a6cfad272e5b5b69254f98032b9f9ed9037ca9c078e",
+      "exporter": "fitburst",
+      "components": 4,
+      "scattering": false,
+      "prediction_npz_sha256": "e938cfc383a1731ae309734ec9ff3b8bb0c46ea1b2e90cbd7f283015d2a6dd25",
+      "reference_profile_chart_xml_sha256": "4167121bcf6f3a9c0df70e8b70b54c78f0810e8408d6ac2cc3b949dd076f4542"
+    }
+  ]
+}

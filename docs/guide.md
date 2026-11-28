@@ -2,20 +2,21 @@
 
 ## Installation
 
-Use a fresh 64-bit Python 3.12 environment. From a checkout of this repository, install burst surveyor with its tested dependencies.
+Use a fresh 64-bit Python 3.12 environment. The [v0.3.0 release](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.0) provides the wheel and tested dependency versions. The default burst fit runs without FitBurst.
 
 ```sh
-python -m pip install -c constraints.txt .
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/burst_surveyor-0.3.0-py3-none-any.whl
 python -m burstsurveyor doctor
 ```
 
-The default bounded burst fit uses the internal exporter. For FitBurst reference exports and modes that use FitBurst, install the optional extra from the same checkout. The `vendor` directory supplies the pinned CHIME/FRB wheel.
+For folded pulsars, experimental spectral modes, or a FitBurst reference export, install the pinned FitBurst wheel in the same environment.
 
 ```sh
-python -m pip install -c constraints.txt --find-links vendor ".[fitburst]"
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/fitburst-0.1.0-py3-none-any.whl
+python -m burstsurveyor doctor --exporter fitburst
 ```
 
-For installation from [release files](https://github.com/ImmortalAri/burst-surveyor/releases), download the burst surveyor wheel and its accompanying `constraints.txt`, then install the wheel with `python -m pip install -c constraints.txt <wheel-filename>`. For the optional backend, also download and install the FitBurst wheel supplied with that release. Releases through v0.2.0 require both wheels.
+From a source checkout, use `python -m pip install -c constraints.txt .` for the default installation, or `python -m pip install -c constraints.txt --find-links vendor ".[fitburst]"` for both exporters.
 
 ## Fit an observation
 

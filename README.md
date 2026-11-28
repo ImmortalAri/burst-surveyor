@@ -4,13 +4,16 @@ burst surveyor automatically fits dedispersed radio bursts and folded pulsar pro
 
 ## Fit an observation
 
-Follow the [installation instructions](docs/guide.md#installation) for Python 3.12, then generate and fit the bundled two-pulse example.
+In a fresh Python 3.12 environment, install [v0.3.0](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.0) and fit the bundled two-pulse example.
 
 ```sh
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/burst_surveyor-0.3.0-py3-none-any.whl
 burstsurveyor example two-pulse.npz
 burstsurveyor fit two-pulse.npz run --workers 1
 burstsurveyor verify run
 ```
+
+[Installation from source and optional FitBurst support](docs/guide.md#installation)
 
 The fit recovers two components near 24.5 and 36.5 ms and selects zero scattering. `run/results.json` records the component count, scores and path to the reconstruction. To fit your own data, replace `two-pulse.npz` with an [observation in NPZ format](docs/reference.md) or a directory of observations. Use a new output directory for each run. The default burst fit uses [measured channel time offsets](docs/reference.md#channel-timing) when the input supplies them.
 
@@ -22,7 +25,7 @@ The [methods walkthrough](docs/methods.md) follows the bundled observation from 
 
 ### Worked example for BaseCat2 event 156410110
 
-Burst Surveyor v0.2.0 found three initial peaks near 18.7, 21.6 and 30.1 ms on this observation's shared time grid. The three-component fit with scattering left a peak near **24.7 ms** in the residual, which is the observed intensity minus the fitted model. The search used that peak to seed a fourth component and refitted the model jointly. Most of the residual emission at 24.7 ms disappears in the four-component fit. An earlier feature near **16.3 ms** remains.
+Burst Surveyor v0.3.0 found three initial peaks near 18.7, 21.6 and 30.1 ms on this observation's shared time grid. The three-component fit with scattering left a peak near **24.7 ms** in the residual, which is the observed intensity minus the fitted model. The search used that peak to seed a fourth component and refitted the model jointly. Most of the residual emission at 24.7 ms disappears in the four-component fit. An earlier feature near **16.3 ms** remains.
 
 [![The observation beside the three- and four-component fits. The peak near 24.7 ms is prominent in the three-component residual and much weaker in the four-component residual.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
 

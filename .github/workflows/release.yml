@@ -35,6 +35,5 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --verify-tag --title "burst surveyor $GITHUB_REF_NAME" \
-            --notes 'Installation and the two-pulse example are described in the README. The optional FitBurst wheel contains the verified CHIME/FRB source and its MIT license.' \
+          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-from-tag --title "burst surveyor $GITHUB_REF_NAME" \
             dist/*.whl vendor/*.whl constraints.txt
