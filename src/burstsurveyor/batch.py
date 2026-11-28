@@ -12,6 +12,7 @@ import time
 import uuid
 
 from ._dispatch import EVENT_WATCHDOG_SECONDS, MAX_WORKERS, RESERVE_MIB, dispatch, run_isolated
+from ._upstream import resolve_exporter
 from ._storage import read, run_lock, sha256, utc, write
 
 SCHEMA = 1
@@ -46,9 +47,20 @@ def _files(inputs):
     return by_id
 
 
-def _method(mode="bounded"):
+def _run_exporter(manifest):
+    # Runs created before the exporter was selectable always used FitBurst.
+    return manifest["method"]["policy"].get("exporter", "fitburst")
+
+
+def _method(mode="bounded", exporter=None):
     from ._upstream import verified_sources
 
+    exporter = resolve_exporter(mode, exporter)
+    packages = ["numpy", "scipy", "psutil", "threadpoolctl"]
+    upstream = {}
+    if exporter == "fitburst":
+        upstream = verified_sources()
+        packages.append("fitburst")
     here = Path(__file__).resolve().parent
     science = here / "science"
     sources = [
@@ -70,12 +82,13 @@ def _method(mode="bounded"):
         "python": platform.python_version(),
         "packages": {
             name: metadata.version(name)
-            for name in ("fitburst", "numpy", "scipy", "psutil", "threadpoolctl")
+            for name in packages
         },
         "sources": {p.relative_to(here).as_posix(): sha256(p) for p in sorted(sources)},
-        "fitburst_sources": verified_sources(),
+        "fitburst_sources": upstream,
         "policy": {
             "mode": mode,
+            "exporter": exporter,
             "reserve_mib": RESERVE_MIB,
             "threads_per_worker": 1,
             **({"event_watchdog_seconds": EVENT_WATCHDOG_SECONDS} if mode == "bounded" else {}),
@@ -132,6 +145,7 @@ def _run_task(task):
 
     stage, raw, output, primary, event, primary_hash, *options = task
     mode = options[0] if options else 'bounded'
+    exporter = options[1] if len(options) > 1 else None
     started = time.monotonic()
     incumbent = None
     if stage == "native":
@@ -147,7 +161,7 @@ def _run_task(task):
                 result = fit_event(raw, Path(tmp), mode=mode)
             else:
                 result = export_event(
-                    raw, incumbent, output / (event["id"] + ".npz"), Path(tmp)
+                    raw, incumbent, output / (event["id"] + ".npz"), Path(tmp), exporter=exporter
                 )
         except InputError as exc:
             result = {
@@ -333,6 +347,7 @@ def _run_stage(directory, paths, manifest, stage, workers, primary):
                 event,
                 primary.get(event["id"]),
                 manifest['method']['policy']['mode'],
+                _run_exporter(manifest),
             )
 
         def progress(status, **extra):
@@ -405,7 +420,7 @@ def _run_stage(directory, paths, manifest, stage, workers, primary):
                 defer=defer if manifest.get("defer_memory") else None,
             )
             _require(
-                _method(manifest['method']['policy']['mode']) == manifest["method"],
+                _method(manifest['method']['policy']['mode'], _run_exporter(manifest)) == manifest["method"],
                 "Scientific source or numerical environment changed during fitting",
             )
             _require(len(hashes) == len(manifest["events"]), "Stage has missing events")
@@ -481,12 +496,13 @@ def _summary(directory, manifest):
         "schema_version": SCHEMA,
         "inputs": len(events),
         "exported": counts.get("provisional", 0),
+        **({"exporter": _run_exporter(manifest)} if "exporter" in manifest["method"]["policy"] else {}),
         "statuses": counts,
         "events": events,
     }
 
 
-def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bounded"):
+def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bounded", exporter=None):
     """Fit one NPZ or an NPZ directory; return the sealed, JSON-serializable result summary.
 
     Completed event receipts survive interruption. Resume using the same input roster,
@@ -513,7 +529,7 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bo
         manifest = {
             "schema_version": SCHEMA,
             "created_utc": utc(),
-            "method": _method(mode),
+            "method": _method(mode, exporter),
             "workers": workers,
             "defer_memory": defer_memory,
             "events": _inventory(paths),
@@ -533,10 +549,13 @@ def fit(inputs, output, *, workers=3, resume=False, defer_memory=False, mode="bo
                 "Resume with the original memory policy",
             )
             _require(manifest['method']['policy']['mode'] == mode, 'Resume with the original fitting mode')
+            saved_exporter = _run_exporter(manifest)
+            if exporter is not None:
+                _require(exporter == saved_exporter, "Resume with the original exporter")
             if (directory / "seal.json").exists():
                 return verify(directory)
             _require(
-                _method(mode) == manifest["method"],
+                _method(mode, saved_exporter) == manifest["method"],
                 "Resume requires the original scientific source and environment",
             )
         else:

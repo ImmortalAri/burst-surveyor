@@ -1,4 +1,5 @@
 import json
+from importlib.util import find_spec
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -46,6 +47,7 @@ class ChannelTimingTests(unittest.TestCase):
             write(offsets)
             np.testing.assert_array_equal(load_raw(path,tmp)[1]['channel_time_offset_s'], offsets)
 
+    @unittest.skipUnless(find_spec("fitburst"), "optional FitBurst reference renderer")
     def test_fit_exports_the_supplied_time_grid(self):
         from burstsurveyor.science.fit import export_event, fit_event, load_event
         from burstsurveyor.science.native import _components
@@ -62,7 +64,7 @@ class ChannelTimingTests(unittest.TestCase):
                 load_event(path, tmp, mode="pulsar")
             fitted = fit_event(path, tmp)
             dest = Path(tmp) / "prediction.npz"
-            receipt = export_event(path, fitted, dest, tmp)
+            receipt = export_event(path, fitted, dest, tmp, exporter="fitburst")
             self.assertEqual(receipt["status"], "provisional")
             with np.load(dest) as output:
                 np.testing.assert_allclose(output["channel_time_offset_s"], offsets, atol=0)

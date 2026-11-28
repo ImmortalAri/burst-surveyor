@@ -1,5 +1,8 @@
 name: Package checks
 on: [push, pull_request]
+defaults:
+  run:
+    shell: bash
 jobs:
   test:
     strategy:
@@ -11,11 +14,24 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python vendor/verify.py
-      - run: python -m pip install -c constraints.txt ./vendor/fitburst-0.1.0-py3-none-any.whl .
-      - run: python -m pip check
-      - run: python -m unittest discover -s tests -v
-      - run: python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
-      - run: python -m burstsurveyor verify run
-      - run: python -m burstsurveyor prepare examples/two-pulse.npz review-run --workers 1
-      - run: python -m burstsurveyor verify review-run/fit
+      - name: Test default installation without FitBurst
+        run: |
+          python -m pip install -c constraints.txt .
+          python -m pip check
+          python -c "from importlib.util import find_spec; assert find_spec('fitburst') is None"
+          python -m burstsurveyor doctor
+          python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
+          python -m burstsurveyor verify run
+          python -c 'import json; assert json.load(open("run/results.json"))["events"][0]["components"] == 2'
+          python -m burstsurveyor prepare examples/two-pulse.npz review-run --workers 1
+          python -m burstsurveyor verify review-run/fit
+          python -m unittest discover -s tests -v
+      - name: Test optional FitBurst installation and reference export
+        run: |
+          python vendor/verify.py
+          python -m pip install -c constraints.txt --find-links vendor ".[fitburst]"
+          python -m pip check
+          python -m burstsurveyor fit examples/two-pulse.npz reference-run --workers 1 --exporter fitburst
+          python -m burstsurveyor verify reference-run
+          python -c 'import json; assert json.load(open("reference-run/results.json"))["events"][0]["components"] == 2'
+          python -m unittest discover -s tests -v

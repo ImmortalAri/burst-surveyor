@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 import tempfile
 import unittest
 from pathlib import Path
@@ -69,6 +70,7 @@ class ScintillationTests(unittest.TestCase):
         np.testing.assert_array_equal(row['channel_amplitudes'], before)
         self.assertGreater(second['validation_loss'], first['validation_loss']*10)
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_native_export_replays_profiled_model(self):
         d, _ = fixture([(70., 3., 90.)])
         row = fit(d, 'a'*64)['selected']
@@ -134,6 +136,7 @@ class ScintillationTests(unittest.TestCase):
         extra['validation_split_block_losses']=np.zeros((2,32)).tolist()
         self.assertIs(select([simple,extra],d,train),extra)
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_scintillation_batch_seal_and_mode_resume_guard(self):
         import json
         from burstsurveyor.batch import fit as batch_fit, verify

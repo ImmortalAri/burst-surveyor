@@ -108,6 +108,26 @@ class BatchTests(unittest.TestCase):
             self.assertIsNone(events["seal.NPZ"]["prediction"])
             self.assertIn("Memory admission", events["seal.NPZ"]["reasons"][0])
 
+    def test_internal_run_records_backend_and_rejects_changed_exporter_on_resume(self):
+        self.assertEqual(self.result["exporter"], "internal")
+        method = read(self.run_dir / "manifest.json")["method"]
+        self.assertEqual(method["policy"]["exporter"], "internal")
+        self.assertNotIn("fitburst", method["packages"])
+        self.assertFalse(method["fitburst_sources"])
+        for event in self.result["events"]:
+            if event["prediction"]:
+                self.assertEqual(read(self.run_dir / event["native_receipt"])["export_backend"], "internal")
+        with self.assertRaisesRegex(ValueError, "original exporter"):
+            batch.fit(self.inputs, self.run_dir, workers=2, resume=True, exporter="fitburst")
+
+    def test_optional_mode_rejects_internal_export_before_creating_run(self):
+        with TemporaryDirectory() as tmp:
+            for mode in ("combined", "scintillation", "pulsar"):
+                destination = Path(tmp) / mode
+                with self.subTest(mode=mode), self.assertRaisesRegex(ValueError, "requires the FitBurst exporter"):
+                    batch.fit(self.inputs, destination, mode=mode, exporter="internal")
+                self.assertFalse(destination.exists())
+
     def test_changed_input_refuses_resume(self):
         changed = self.base / "changed"
         shutil.copytree(self.inputs, changed)
@@ -138,7 +158,7 @@ class BatchTests(unittest.TestCase):
                 side_effect=RuntimeError("changed FitBurst source"),
             ):
                 with self.assertRaisesRegex(RuntimeError, "changed FitBurst source"):
-                    batch.fit(self.inputs / "two pulses.npz", output, workers=1)
+                    batch.fit(self.inputs / "two pulses.npz", output, workers=1, exporter="fitburst")
             self.assertFalse(output.exists())
 
     def test_corrupt_export_and_receipt_are_rejected(self):

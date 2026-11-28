@@ -320,8 +320,11 @@ def _fit_event(path, scratch_directory, mode):
     return record
 
 
-def export_event(path, primary, prediction_path, scratch_directory):
-    """Render the selected upstream pixels and return their independently scored receipt."""
+def export_event(path, primary, prediction_path, scratch_directory, *, exporter=None):
+    """Render the selected model on the acquisition grid and score the stored pixels."""
+    from .._upstream import resolve_exporter
+
+    backend = resolve_exporter(primary.get("mode", "bounded"), exporter)
     started = time.monotonic()
     with threadpool_limits(limits=1):
         data, source = load_event(path, scratch_directory, mode=primary.get("mode", "bounded"))
@@ -338,6 +341,7 @@ def export_event(path, primary, prediction_path, scratch_directory):
             prediction_path,
             pulse_fn=pulse,
             source_sha256=source["source_sha256"],
+            export_backend=backend,
         )
         if primary.get('mode') in {'combined','pulsar'} and row.get('status')=='provisional':
             from .pulse_coverage import assess_pixels,residual_degradation

@@ -107,6 +107,10 @@ def fit_spectral(data, incumbent, old_prediction, old_baseline, destination, sou
     if len(channels) * data.e.length * n > MAX_COMPONENT_CELLS:
         return dict(result, reason="spectral component-pixel budget exceeded")
 
+    from ._upstream import verified_sources
+
+    # This route fits per-channel amplitudes, even when the baseline used the internal exporter.
+    verified_sources()
     fold_id = (channels // CHANNEL_BLOCK) % 2
     try:
         for parity in (0, 1):
@@ -121,7 +125,8 @@ def fit_spectral(data, incumbent, old_prediction, old_baseline, destination, sou
             amplitude_channels=channels.tolist(), channel_amplitudes=amplitudes.tolist(),
         )
         model["gain"], model["rms_gain"], _ = score(data, model)
-        encoded = finalize(data, model, destination, pulse_fn=pulse, source_sha256=source_sha256)
+        encoded = finalize(data, model, destination, pulse_fn=pulse,
+                           source_sha256=source_sha256, export_backend="fitburst")
     except (ArithmeticError, RuntimeError, ValueError, np.linalg.LinAlgError) as exc:
         return dict(result, reason=f"spectral refit failed: {exc}")
     result["official_export"] = encoded

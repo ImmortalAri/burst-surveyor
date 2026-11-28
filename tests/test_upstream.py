@@ -10,6 +10,7 @@ from burstsurveyor._upstream import verified_sources
 
 
 class UpstreamIdentityTests(unittest.TestCase):
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_line_endings_and_changed_model(self):
         source = Path(find_spec("fitburst").origin).parent
         original = verified_sources()

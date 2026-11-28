@@ -8,15 +8,15 @@ from threadpoolctl import threadpool_limits
 
 from ._dispatch import MIB, RESERVE_MIB, estimate_bytes, run_isolated
 from ._storage import read, sha256, write
-from .batch import _method, verify
+from .batch import _method, _run_exporter, verify
 from .review import find_event
 
 
-def _worker(source, run, event, output):
+def _worker(source, run, event, output, exporter):
     from .rescue_router import run_event
 
     with threadpool_limits(limits=1):
-        return run_event(source, run, event, output)
+        return run_event(source, run, event, output, exporter)
 
 
 def _result_files(folder, event):
@@ -68,7 +68,8 @@ def route_rescue(run, source, output):
     manifest = read(run / "manifest.json")
     if manifest["method"]["policy"]["mode"] != "bounded":
         raise ValueError("Routed rescue requires a sealed bounded fit")
-    if manifest["method"] != _method():
+    exporter = _run_exporter(manifest)
+    if manifest["method"] != _method("bounded", exporter):
         raise ValueError("Use the same scientific method and runtime as the sealed fit")
     events = [e for e in stock["events"] if e["input_name"] == source.name]
     if not events or sha256(source) != events[0]["source_sha256"]:
@@ -91,7 +92,7 @@ def route_rescue(run, source, output):
     with tempfile.TemporaryDirectory(prefix=".routed-rescue-", dir=output.parent) as temporary:
         scratch = Path(temporary)
         stage = scratch / "candidate"
-        run_isolated(_worker, (source, run, event, stage), scratch=scratch)
+        run_isolated(_worker, (source, run, event, stage, exporter), scratch=scratch)
         if sha256(run / "seal.json") != stock_seal:
             raise ValueError("Baseline seal changed during the rescue")
         write(stage / "method.json", plan)

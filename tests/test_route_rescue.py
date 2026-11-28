@@ -54,6 +54,7 @@ class RoutedRescueCliTests(unittest.TestCase):
             report = json.loads((alternate / "result.json").read_bytes())
             self.assertEqual(report["route"], "joint")
             self.assertEqual(report["disposition"], "candidate")
+            self.assertEqual(report["official_export"]["export_backend"], "internal")
             self.assertEqual(report["baseline_components"], 5)
             self.assertEqual(report["candidate_components"], len(injected_bins))
             for feature in injected_bins[:2]:

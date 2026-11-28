@@ -11,6 +11,10 @@ Burst Surveyor v0.2.0 and v0.1.1 reconstructed the same 4,455 of 4,464 CHIME/FRB
 
 Whole-window gain is the fraction of noise-weighted squared error removed relative to a constant intensity per channel. The 90% threshold applies only to positive catalog gains. On-pulse error uses the same weights within the saved v0.1.1 on-pulse mask. The median includes all 4,386 bursts with on-pulse bins.
 
+## Exporter agreement
+
+Starting from the same bounded fit, the internal and FitBurst exporters agreed on the amplitude-adjustment decision for all 316 tested FRBs, including all 12 archived adjustments in the two comparison runs. The 16-event pilot and separate 300-event follow-up deliberately included difficult cases. In the follow-up (110 Catalog 2 and 190 BaseCat 2 events), all FitBurst replays reproduced the archived prediction files byte for byte. All internal exports ran without FitBurst and preserved the fitted geometry and acquisition grid. The median noise-weighted RMS difference between the final model arrays was 0.0054% of the FitBurst model RMS, and the largest was 0.207%. This comparison covers the default smooth-spectrum burst model. [Exporter regression tests](../tests/test_internal_export.py)
+
 ## Component counts
 
 Whole-window gains agreed within 0.1 percentage point for 4,350 of 4,445 v0.2.0 fits (97.9%). Of those fits, 3,093 (71.1%) used a different component count from the catalog.

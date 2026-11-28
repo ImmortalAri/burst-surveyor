@@ -121,7 +121,7 @@ def temporal_folds(data, sets, solve, old_prediction, old_base):
     return folds
 
 
-def run_event(source, baseline_run, baseline_row, output):
+def run_event(source, baseline_run, baseline_row, output, exporter):
     """Inspect and optionally refit one member of a verified stock run."""
     started = time.monotonic()
     output.mkdir(parents=True, exist_ok=False)
@@ -200,7 +200,8 @@ def run_event(source, baseline_run, baseline_row, output):
                 row = solve(data)
                 trial_rows = [] if row is None else [row]
             for row in trial_rows:
-                encoded = finalize(data, row, destination, pulse_fn=pulse, source_sha256=entry["source_sha256"])
+                encoded = finalize(data, row, destination, pulse_fn=pulse,
+                                   source_sha256=entry["source_sha256"], export_backend=exporter)
                 if adequate(encoded, row["name"]):
                     break
             else:

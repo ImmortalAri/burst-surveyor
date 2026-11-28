@@ -193,7 +193,7 @@ def _render(view, event, selected, destination):
                 view["profile"][1],
                 color="#bb4d29",
                 linewidth=1.9,
-                label="FitBurst",
+                label="Fitted model",
             )
         top.set(
             xlim=view["time"][[0, -1]],

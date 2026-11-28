@@ -6,6 +6,17 @@ import json
 from pathlib import Path
 
 
+def resolve_exporter(mode: str, exporter: str | None = None) -> str:
+    """Select the renderer for a new run; only bounded bursts support both."""
+    if exporter is None:
+        return "internal" if mode == "bounded" else "fitburst"
+    if exporter not in {"internal", "fitburst"}:
+        raise ValueError("exporter must be internal or fitburst")
+    if exporter == "internal" and mode != "bounded":
+        raise ValueError(f"The {mode} mode requires the FitBurst exporter.")
+    return exporter
+
+
 def verified_sources() -> dict[str, str]:
     """Return on-disk hashes for the approved FitBurst source; raise RuntimeError on drift.
 

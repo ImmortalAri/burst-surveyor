@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 import unittest
 import numpy as np
 from burstsurveyor.science.engine import Event,InputError
@@ -5,8 +6,6 @@ from burstsurveyor.science.fit import load_config
 from burstsurveyor.science.model import pulse
 from burstsurveyor.science.native import _score
 from burstsurveyor.science.objective import ReconstructionData,score
-from fitburst.analysis.model import SpectrumModeler
-from fitburst.backend import general
 
 class PeriodicTests(unittest.TestCase):
     def fixture(self,scatter=True):
@@ -39,7 +38,11 @@ class PeriodicTests(unittest.TestCase):
         shifted=x.copy();shifted[1]+=57
         np.testing.assert_allclose(np.roll(y,57,axis=1),pulse(shifted,1,True,e.coords,ch,t)[0],atol=1e-10)
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_upstream_export_independent_period_sum(self):
+        from fitburst.analysis.model import SpectrumModeler
+        from fitburst.backend import general
+
         for scatter in (False,True):
             e,x,ch,t=self.fixture(scatter);e.raw+=pulse(x,1,scatter,e.coords,ch,t)[0]
             d=ReconstructionData(e);row=dict(n=1,scatter=scatter,x=x.tolist())

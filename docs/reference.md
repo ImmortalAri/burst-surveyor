@@ -30,10 +30,14 @@ sample interval. [CHIME/FRB Catalog 2 timing convention](https://arxiv.org/html/
 
 Peak discovery uses the observed time bins. The coarse search averages the model
 over four noise-weighted offset quantiles per frequency group. Native fitting,
-residual scoring and FitBurst export use each channel's offset. The prediction
+residual scoring and both bounded exporters use each channel's offset. The prediction
 NPZ includes the offsets alongside the nominal `time_s` axis.
 
 ## Export
+
+In bounded mode, `fit` and `prepare` export the internal, bin-integrated model by default. To render with the pinned FitBurst implementation, install the [optional dependency](guide.md#installation) and pass `--exporter fitburst`. The pulsar, scintillation and combined modes use FitBurst. An interrupted run resumes with its recorded exporter.
+
+The run summary records `exporter`. The native event receipt identifies the renderer and its version, and the prediction NPZ records the export format in `version`. Both exporters populate `fitburst_parameters` using the same physical parameter conventions. Historical runs without an exporter field used FitBurst. To reproduce a published result exactly, use the original software version, numerical environment and input.
 
 Modeled intensity is `prediction + baseline[:, None]` on the original pixels. The NPZ includes channel and off-burst masks, channel variances, frequency centres in MHz and the nominal time axis `time_s` in seconds, starting at zero.
 

@@ -9,7 +9,7 @@ import sys
 def _parser():
     parser = argparse.ArgumentParser(
         prog="burstsurveyor",
-        description="Automated fitting of radio bursts and folded pulsar profiles with FitBurst.",
+        description="Automated fitting of radio bursts and folded pulsar profiles.",
     )
     sub = parser.add_subparsers(dest="command", required=True, metavar="COMMAND")
     fit = sub.add_parser("fit", help="fit one NPZ file or a directory and export the reconstructions")
@@ -54,6 +54,11 @@ def _parser():
     prepare.add_argument("--no-auto-rescue", action="store_true")
     prepare.add_argument("--mode", choices=("bounded", "combined", "scintillation", "pulsar"), default="bounded",
                          help="bounded is the default; pulsar fits one complete folded rotation")
+    for command in (fit, prepare):
+        command.add_argument(
+            "--exporter", choices=("internal", "fitburst"),
+            help="use the internal model for bounded fits (default), or the pinned FitBurst renderer",
+        )
     decide = sub.add_parser(
         "decide", help="record assessments and test proposed fits"
     )
@@ -109,9 +114,8 @@ def _parser():
     routed.add_argument("run", type=Path)
     routed.add_argument("input", type=Path, help="one original NPZ from the sealed run")
     routed.add_argument("output", type=Path, help="a new directory for the rescue result")
-    sub.add_parser(
-        "doctor", help="check the numerical runtime and upstream FitBurst import"
-    )
+    doctor = sub.add_parser("doctor", help="check the numerical runtime for an exporter")
+    doctor.add_argument("--exporter", choices=("internal", "fitburst"), default="internal")
     schema = sub.add_parser("schema", help="show the results or proposal JSON schema")
     schema.add_argument("kind", choices=("results", "proposal"))
     return parser
@@ -134,7 +138,7 @@ def _run(args):
         if args.command == "prepare":
             return assistant.prepare(
                 args.inputs, args.workspace, workers=args.workers, resume=args.resume,
-                auto_rescue=not args.no_auto_rescue, mode=args.mode
+                auto_rescue=not args.no_auto_rescue, mode=args.mode, exporter=args.exporter
             )
         if args.command == "decide":
             return assistant.decide(args.workspace, args.inputs, args.decisions)
@@ -154,16 +158,24 @@ def _run(args):
         from importlib.metadata import version
         from ._upstream import verified_sources
 
-        verified_sources()
-        from fitburst.analysis.model import SpectrumModeler
+        packages = ["numpy", "scipy", "psutil", "threadpoolctl"]
+        if args.exporter == "fitburst":
+            verified_sources()
+            from fitburst.analysis.model import SpectrumModeler
+            renderer = SpectrumModeler.__name__
+            packages.append("fitburst")
+        else:
+            from .science.model import pulse
+            renderer = pulse.__name__
 
         return dict(
             product="Burst Surveyor",
             python=sys.version.split()[0],
-            renderer=SpectrumModeler.__name__,
+            exporter=args.exporter,
+            renderer=renderer,
             packages={
                 n: version(n)
-                for n in ("fitburst", "numpy", "scipy", "psutil", "threadpoolctl")
+                for n in packages
             },
         )
     if args.command == "example":
@@ -182,7 +194,7 @@ def _run(args):
         if args.limit < 1:
             raise ValueError("--limit must be positive")
         summary = _brief(
-            fit(args.inputs, args.output, workers=args.workers, resume=args.resume, mode=args.mode),
+            fit(args.inputs, args.output, workers=args.workers, resume=args.resume, mode=args.mode, exporter=args.exporter),
             args.output,
         )
         if args.second_look:

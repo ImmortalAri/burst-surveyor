@@ -1,6 +1,6 @@
 # burst surveyor
 
-burst surveyor automatically fits dedispersed radio bursts and folded pulsar profiles. It estimates starting parameters from the observed intensity, compares models with different component counts and with or without scattering, and uses [FitBurst](https://github.com/CHIMEFRB/fitburst) to reconstruct the selected model on the original frequency and time grid.
+burst surveyor automatically fits dedispersed radio bursts and folded pulsar profiles. It estimates starting parameters from the observed intensity, compares models with different component counts and with or without scattering, and exports the selected model on the original frequency and time grid. The default burst fit uses Surveyor’s bin-integrated pulse model throughout. [FitBurst](https://github.com/CHIMEFRB/fitburst) is available for reference exports and is required for folded pulsar and experimental spectral modes.
 
 ## Fit an observation
 
@@ -18,7 +18,7 @@ The fit recovers two components near 24.5 and 36.5 ms and selects zero scatterin
 
 For a burst, the search averages usable frequency channels over the full band, halves and quarters. It looks for peaks at several smoothing widths. Their positions and widths supply starting estimates for Gaussian components, which are fitted jointly to the dynamic spectrum. The search tests models with and without a scattering tail and checks the residuals for missed emission. It scores each candidate by the reduction in noise-weighted squared error on the original grid and favors simpler fits when scores are close.
 
-The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the exported FitBurst parameters.
+The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the saved model and residuals.
 
 ### Worked example for BaseCat2 event 156410110
 

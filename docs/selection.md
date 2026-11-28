@@ -33,6 +33,8 @@ One scattering timescale is shared across components, with frequency exponent fi
 
 Run the experimental `route-rescue` command on a completed, verified bounded fit and its original NPZ. It uses the residual to choose at most one follow-up. It can add a component for an isolated missing peak, jointly refit multiple missed peaks, or refit spectral amplitudes at fixed timing on a shared grid.
 
+Temporal rescues inherit the exporter from the original run. The fixed-timing spectral route uses the optional FitBurst renderer for its per-channel amplitudes.
+
 The command writes a route and decision receipt in a separate output directory. A `candidate` covers the supported peaks on the exported grid, improves both weighted losses on that grid, and passes both held-out channel checks using alternating eight-channel blocks. A `review` result passes the export checks and needs inspection of its held-out evidence. A `retained` result keeps the stock fit as the selected outcome. Peak discovery uses the observation. Each held-out check tests whether parameters fitted on one set of channels improve predictions on the other.
 
 The [bundled synthetic rescue example](../examples/README.md#bundled-rescue-example) demonstrates an accepted joint refit of two blended peaks.

@@ -224,7 +224,7 @@ def _fit_direction(data, train, incumbent, packet, strength):
     )
 
 
-def _attempt(source, event, native, signal, packet, directory):
+def _attempt(source, event, native, signal, packet, directory, exporter):
     from .science import load_event
     from .science.engine import Limit
     from .science.objective import score
@@ -296,10 +296,11 @@ def _attempt(source, event, native, signal, packet, directory):
         incumbent_full = _gain(data, incumbent, data.indices)
         if not _improves((gain, rms), incumbent_full, POLICY["full_gain_floor"]):
             return stop("no_material_native_gain")
-        # Render the challenger independently on the original NPZ. Upstream pixel scores own final promotion.
+        # Compare both predictions on the original pixels with the baseline exporter.
         path = Path(temporary) / "challenger.npz"
         receipt = finalize(
-            data, row, path, pulse_fn=pulse, source_sha256=entry["source_sha256"]
+            data, row, path, pulse_fn=pulse, source_sha256=entry["source_sha256"],
+            export_backend=exporter,
         )
         if receipt["status"] != "provisional":
             result["export_reasons"] = receipt["reasons"]
@@ -403,7 +404,7 @@ def verify_second_look(run, output):
     return _verified(run, output, verify(run))
 
 
-def _attempt_from_prediction(source, event, native, prediction, packet, directory):
+def _attempt_from_prediction(source, event, native, prediction, packet, directory, exporter):
     from threadpoolctl import threadpool_limits
 
     with threadpool_limits(limits=1):
@@ -411,13 +412,13 @@ def _attempt_from_prediction(source, event, native, prediction, packet, director
         if prediction is not None:
             with np.load(prediction, allow_pickle=False) as archive:
                 signal = archive["prediction"]
-        return _attempt(source, event, native, signal, packet, directory)
+        return _attempt(source, event, native, signal, packet, directory, exporter)
 
 
 def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
     """Evaluate at most one additional pulse per routed event into a separate output."""
     import psutil
-    from .batch import _method, verify
+    from .batch import _method, _run_exporter, verify
     from .science import inspect_npz
     from ._dispatch import estimate_bytes, RESERVE_MIB, MIB
     from threadpoolctl import threadpool_limits
@@ -432,8 +433,10 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
     if output == run or run in output.parents:
         raise ValueError("Use a second-look output outside the sealed run")
     summary = verify(run)
-    if read(run / 'manifest.json')['method']['policy']['mode'] != 'bounded':
+    manifest = read(run / "manifest.json")
+    if manifest['method']['policy']['mode'] != 'bounded':
         raise ValueError('Scintillation mode does not support bounded second-look rescue; leave persistent residuals for review')
+    exporter = _run_exporter(manifest)
     if isinstance(proposal, (Path, str)) and Path(proposal).stat().st_size > 65536:
         raise ValueError("A proposal JSON file must be 64 KiB or smaller")
     packet = read(Path(proposal)) if isinstance(proposal, (Path, str)) else proposal
@@ -441,7 +444,7 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
         raise ValueError("Expected a JSON proposal object")
     if packet is not None:
         events = [find_event(summary, packet.get("event_id"))]
-        roster = read(run / "manifest.json")["events"]
+        roster = manifest["events"]
         entry = next(row for row in roster if row["id"] == events[0]["id"])
         if "shape" not in entry or events[0]["status"] not in {
             "provisional",
@@ -462,13 +465,13 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
         policy=POLICY,
         event_ids=[e["id"] for e in events],
         proposal=packet,
-        science=_method(),
+        science=_method("bounded", exporter),
         controller_sources={
             name: sha256(Path(__file__).with_name(name))
             for name in ("secondlook.py", "review.py")
         },
     )
-    if plan["science"] != read(run / "manifest.json")["method"]:
+    if plan["science"] != manifest["method"]:
         raise ValueError(
             "Use the same installed scientific method and environment as the sealed baseline"
         )
@@ -525,7 +528,7 @@ def second_look(run, inputs, output, *, proposal=None, limit=8, resume=False):
                     try:
                         result = run_isolated(
                             _attempt_from_prediction,
-                            (source, event, native, prediction, packet, directory),
+                            (source, event, native, prediction, packet, directory, exporter),
                             scratch=Path(temp),
                         )
                     except TimeoutError:

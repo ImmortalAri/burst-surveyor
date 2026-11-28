@@ -16,7 +16,8 @@ jobs:
         run: |
           python vendor/verify.py
           python -m pip wheel --no-deps . -w dist
-          python -m pip install -c constraints.txt vendor/*.whl dist/*.whl
+          python -m pip install -c constraints.txt dist/*.whl
+          python -c "from importlib.util import find_spec; assert find_spec('fitburst') is None"
           python -m pip check
           test "v$(python -c 'from importlib.metadata import version; print(version("burst-surveyor"))')" = "$GITHUB_REF_NAME"
           cd "$RUNNER_TEMP"
@@ -25,10 +26,15 @@ jobs:
           burstsurveyor fit two-pulse.npz run --workers 1
           burstsurveyor verify run
           python -c 'import json; assert json.load(open("run/results.json"))["events"][0]["components"] == 2'
+          python -m pip install -c "$GITHUB_WORKSPACE/constraints.txt" "$GITHUB_WORKSPACE"/vendor/*.whl
+          python -m pip check
+          burstsurveyor fit two-pulse.npz reference-run --workers 1 --exporter fitburst
+          burstsurveyor verify reference-run
+          python -c 'import json; assert json.load(open("reference-run/results.json"))["events"][0]["components"] == 2'
       - name: Publish wheels and tested constraints
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" --verify-tag --title "burst surveyor $GITHUB_REF_NAME" \
-            --notes 'Installation and the two-pulse example are described in the README. The FitBurst wheel contains the verified CHIME/FRB source and its MIT license.' \
+            --notes 'Installation and the two-pulse example are described in the README. The optional FitBurst wheel contains the verified CHIME/FRB source and its MIT license.' \
             dist/*.whl vendor/*.whl constraints.txt

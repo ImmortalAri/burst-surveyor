@@ -5,6 +5,7 @@
   "required":["schema_version","inputs","exported","statuses","events"],
   "properties":{
     "schema_version":{"const":1},
+    "exporter":{"enum":["internal","fitburst"]},
     "inputs":{"type":"integer","minimum":1},
     "exported":{"type":"integer","minimum":0},
     "statuses":{"type":"object","additionalProperties":{"type":"integer","minimum":0}},

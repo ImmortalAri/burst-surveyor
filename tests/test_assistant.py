@@ -1,5 +1,7 @@
 """The assistant must inspect evidence; the second-look guard alone selects the model."""
 
+from importlib.util import find_spec
+
 import csv
 import json
 from pathlib import Path
@@ -73,6 +75,18 @@ class AssistantTests(unittest.TestCase):
         shutil.copytree(self.master, d)
         items = {r["input_name"]: r for r in read(d / "review/index.json")["events"]}
         return d, items
+
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
+    def test_reference_session_resumes_with_original_exporter(self):
+        source = self.raw / "two.npz"
+        workspace = self.root / self._testMethodName
+        assistant.prepare(source, workspace, workers=1, auto_rescue=False, exporter="fitburst")
+        result = read(workspace / "fit/results.json")["events"][0]
+        self.assertEqual(read(workspace / "fit" / result["native_receipt"])["export_backend"], "fitburst")
+        self.assertEqual(read(workspace / "session.json")["exporter"], "fitburst")
+        assistant.prepare(source, workspace, workers=1, auto_rescue=False, resume=True)
+        with self.assertRaisesRegex(ValueError, "exporter"):
+            assistant.prepare(source, workspace, workers=1, auto_rescue=False, resume=True, exporter="internal")
 
     def test_guarded_challenger_and_final_review(self):
         d, items = self.clone()
@@ -219,6 +233,7 @@ class AssistantTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Changed triage figure"):
             verify_queue(out, d / "fit")
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_combined_prepare_produces_queue_and_records_mode(self):
         d = self.root / "combined-workspace"
         assistant.prepare(self.raw / "two.npz", d, workers=1, mode="combined")

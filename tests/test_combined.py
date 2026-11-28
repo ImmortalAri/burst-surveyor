@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 import time,unittest
 import numpy as np
 from threadpoolctl import threadpool_limits
@@ -136,6 +137,7 @@ class CombinedTests(unittest.TestCase):
         self.assertTrue(exists)
         self.assertTrue(result['native_peak_coverage']['passed'])
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_combined_batch_seals_actual_native_gate(self):
         import json,tempfile
         from pathlib import Path

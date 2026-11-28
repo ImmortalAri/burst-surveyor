@@ -20,8 +20,8 @@
     "status": "provisional",
     "components": 2,
     "scatter": false,
-    "common_gain": 7085.713834644648,
-    "rms_gain": 3409.078826365762
+    "common_gain": 7085.713890083677,
+    "rms_gain": 3409.08506688962
   },
   "score_relative_tolerance": 1e-05
 }

@@ -10,7 +10,8 @@ import tempfile
 import numpy as np
 
 from ._storage import read, run_lock, sha256, write
-from .batch import fit, verify
+from ._upstream import resolve_exporter
+from .batch import _run_exporter, fit, verify
 from .diagnostics import diagnostic_data
 from .component_review import component_review
 from .review import find_event, load_for_review, plot_verified_event, queue
@@ -35,12 +36,13 @@ def _raw(inputs, event):
     return source
 
 
-def _policy(workers, auto_rescue=True, mode="bounded"):
+def _policy(workers, auto_rescue=True, mode="bounded", exporter=None):
     return {
         "schema_version": 1,
         "workers": workers,
         "auto_rescue": auto_rescue,
         "mode": mode,
+        **({"exporter": exporter} if exporter is not None else {}),
         "maximum_challenges_per_event": 1,
         "review_sources": {
             n: sha256(Path(__file__).with_name(n))
@@ -52,10 +54,12 @@ def _policy(workers, auto_rescue=True, mode="bounded"):
 
 def _check_session(ws):
     policy = read(ws / "session.json")
+    manifest = read(ws / "fit/manifest.json")
     _check(
-        policy == _policy(policy.get("workers"), policy.get("auto_rescue"), policy.get("mode", "bounded"))
-        and policy["workers"] == read(ws / "fit/manifest.json")["workers"],
-        "Assistant policy, source or sealed worker count changed",
+        policy == _policy(policy.get("workers"), policy.get("auto_rescue"), policy.get("mode", "bounded"), policy.get("exporter"))
+        and policy["workers"] == manifest["workers"]
+        and policy.get("exporter", "fitburst") == _run_exporter(manifest),
+        "Assistant policy, source, exporter or sealed worker count changed",
     )
 
 
@@ -270,22 +274,25 @@ def _review_queue(ws, summary):
     return publish(ws / "review", rows, dict(baseline_seal_sha256=sha256(ws / "fit/seal.json"), session_sha256=sha256(ws / "session.json")))
 
 
-def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True, mode="bounded"):
+def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True, mode="bounded", exporter=None):
     """Produce the sealed fit and evidence packets for assistant inspection."""
     inputs, ws = Path(inputs).resolve(), Path(workspace).resolve()
     if not resume:
+        exporter = resolve_exporter(mode, exporter)
         ws.mkdir(parents=True, exist_ok=False)
     elif not (ws / "session.json").is_file():
         raise ValueError("Resume needs the original assistant workspace")
     with run_lock(ws):
-        policy = _policy(workers, auto_rescue, mode)
         if resume:
+            existing = read(ws / "session.json")
+            saved = existing.get("exporter", "fitburst")
+            exporter = resolve_exporter(mode, saved if exporter is None else exporter)
             _check(
-                read(ws / "session.json") == policy,
-                "Assistant policy, sources or worker configuration changed",
+                exporter == saved and existing == _policy(workers, auto_rescue, mode, existing.get("exporter")),
+                "Assistant policy, sources, exporter or worker configuration changed",
             )
         else:
-            write(ws / "session.json", policy)
+            write(ws / "session.json", _policy(workers, auto_rescue, mode, exporter))
         summary = fit(
             inputs,
             ws / "fit",
@@ -293,6 +300,7 @@ def prepare(inputs, workspace, *, workers=3, resume=False, auto_rescue=True, mod
             resume=(ws / "fit/manifest.json").is_file(),
             defer_memory=mode != 'pulsar',
             mode=mode,
+            exporter=exporter,
         )
         flags = {row["id"]: row["flags"] for row in queue(ws / "fit", summary)}
         index_path = ws / "review/index.json"

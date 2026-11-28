@@ -1,4 +1,4 @@
-"""The numerical reconstruction and upstream pixel export interfaces."""
+"""Numerical fitting and export on the observation grid."""
 
 from .engine import InputError
 from .fit import export_event, fit_event, load_event

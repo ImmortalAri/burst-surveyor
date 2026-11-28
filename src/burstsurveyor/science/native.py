@@ -1,4 +1,4 @@
-"""Verify and export a selected native reconstruction with upstream FitBurst."""
+"""Evaluate, check, and export a selected reconstruction on the acquisition grid."""
 
 import contextlib
 from functools import lru_cache
@@ -18,6 +18,7 @@ from threadpoolctl import threadpool_limits
 
 VERSION = "burstsurveyor-native-1"
 PARITY_LIMIT = 0.01
+INTERNAL_VERSION = "burstsurveyor-internal-1"
 
 
 def _measured(timings, label, function, *args, **kwargs):
@@ -76,6 +77,17 @@ def _components(model_class, parameters, freq, time_s, n, quadrature):
     return components
 
 
+def _internal_components(x, n, scatter, coords, channels, t, pulse_fn):
+    """Evaluate each analytic component on the original bin edges."""
+    # Every component shares the residual DM and (when fitted) the scattering time.
+    shared = x[5 * n :]
+    parts = np.empty((len(channels), len(t), n))
+    for i in range(n):
+        component = np.concatenate((x[5 * i : 5 * i + 5], shared))
+        parts[:, :, i] = pulse_fn(component, 1, scatter, coords, channels, t)[0]
+    return parts
+
+
 def _score(data, row, quadrature, pulse_fn, model_class, normalize_pbf, moments=None):
     gains = np.zeros(2)
     integrated = np.zeros(2)
@@ -85,12 +97,14 @@ def _score(data, row, quadrature, pulse_fn, model_class, normalize_pbf, moments=
     baseline = np.full(len(data.e.raw), np.nan)
     x = np.asarray(row["x"], dtype=float)
     n = row["n"]
-    parameters = _parameters(row, data.e.coords, normalize_pbf)
+    parameters = _parameters(row, data.e.coords, normalize_pbf) if model_class is not None else None
     time_s = data.t * data.e.coords.dt
     tile = max(1, min(16, 250000 // (len(time_s) * n)))
     for start in range(0, len(data.indices), tile):
         ii = data.indices[start : start + tile]
-        if getattr(data.e.coords, 'period_bins', None) is None:
+        if model_class is None:
+            parts = _internal_components(x, n, row["scatter"], data.e.coords, ii, data.t, pulse_fn)
+        elif getattr(data.e.coords, 'period_bins', None) is None:
             sample_times = time_s
             offsets = getattr(data.e.coords, "channel_time_offset_bins", None)
             if offsets is not None:
@@ -268,16 +282,23 @@ def _publish(path, arrays):
             Path(tmp_name).unlink(missing_ok=True)
 
 
-def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
-    """Finalize one winner with official FitBurst on identical pixels and weights.
+def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256, export_backend="fitburst"):
+    """Finalize one winner on identical pixels and weights.
 
     Return a JSON-safe receipt. A refused or unresolved result publishes nothing.
     Filesystem errors propagate so the coordinator cannot seal an incomplete run.
     Use a unique per-event .npz destination with an existing parent directory.
     """
+    if export_backend not in ("fitburst", "internal"):
+        raise ValueError(f"Unknown export backend: {export_backend}")
+    internal = export_backend == "internal"
+    if internal and (getattr(data.e.coords, "period_bins", None) is not None
+                     or (selected and selected.get("model") == "channel-amplitudes-v1")):
+        raise ValueError("Internal export requires bounded smooth-spectrum burst mode")
+    artifact_version = INTERNAL_VERSION if internal else VERSION
     if selected and selected.get('model') == 'channel-amplitudes-v1':
         from .scintillation_native import finalize_profiled
-        return finalize_profiled(data, selected, prediction_path, source_sha256)
+        return finalize_profiled(data, selected, prediction_path, source_sha256) | {"export_backend": "fitburst"}
     start = time.perf_counter()
     stage_seconds = dict(
         incumbent_render_seconds=0.0,
@@ -296,7 +317,8 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
     ):
         raise ValueError("expected lowercase raw NPZ SHA-256")
     receipt = dict(
-        version=VERSION,
+        version=artifact_version,
+        export_backend=export_backend,
         status="refused",
         certified=False,
         source_sha256=source_sha256,
@@ -316,13 +338,27 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
             elapsed_s=time.perf_counter() - start,
         )
     try:
-        from fitburst.analysis.model import SpectrumModeler
-        from fitburst.backend import general
-
         _check_data(data, selected)
-        normalize_pbf = bool(general["flags"]["normalize_pbf"])
+        if internal:
+            from .. import __version__
+
+            model_class = None
+            # Express fitburst_parameters in the pinned unnormalized PBF convention.
+            # The analytic pulse is evaluated directly from the canonical parameters.
+            normalize_pbf = False
+            receipt.update(
+                backend_version=__version__,
+                backend_source_sha256=_hash(Path(inspect.getfile(pulse_fn))),
+                model_integration="analytic bin edges",
+            )
+        else:
+            from fitburst.analysis.model import SpectrumModeler
+            from fitburst.backend import general
+
+            model_class = SpectrumModeler
+            normalize_pbf = bool(general["flags"]["normalize_pbf"])
+            receipt.update(**_backend_receipt(model_class))
         receipt.update(
-            **_backend_receipt(SpectrumModeler),
             normalize_pbf=normalize_pbf,
             analytic_incumbent=dict(
                 gain=float(selected["gain"]),
@@ -336,8 +372,10 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
         row = dict(
             n=n, scatter=bool(selected["scatter"]), x=np.asarray(selected["x"]).tolist()
         )
-        narrowest = np.exp(min(row["x"][2 : 5 * n : 5]))
-        quadrature = min(64, max(8, int(np.ceil(3 / max(0.01, narrowest)))))
+        quadrature = None
+        if not internal:
+            narrowest = np.exp(min(row["x"][2 : 5 * n : 5]))
+            quadrature = min(64, max(8, int(np.ceil(3 / max(0.01, narrowest)))))
         receipt.update(
             quadrature=quadrature, native_model_passes=1, challenger_selected=False,
             period_s=data.e.grid.get("period_s") if getattr(data.e.coords,"period_bins",None) else None,
@@ -354,7 +392,7 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
                 row,
                 quadrature,
                 pulse_fn,
-                SpectrumModeler,
+                model_class,
                 normalize_pbf,
                 moments,
             )
@@ -416,7 +454,7 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
                         proposal,
                         quadrature,
                         pulse_fn,
-                        SpectrumModeler,
+                        model_class,
                         normalize_pbf,
                     )
                     matched = all(
@@ -487,7 +525,7 @@ def finalize(data, selected, prediction_path, *, pulse_fn, source_sha256):
         res_time=np.float64(data.e.grid["res_time"]),
         res_freq=np.float64(data.e.grid["res_freq"]),
         source_sha256=np.array(source_sha256),
-        version=np.array(VERSION),
+        version=np.array(artifact_version),
     )
     offsets = getattr(data.e.coords, "channel_time_offset_bins", None)
     if offsets is not None:

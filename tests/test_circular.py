@@ -1,3 +1,4 @@
+from importlib.util import find_spec
 import json
 from pathlib import Path
 import tempfile
@@ -88,6 +89,7 @@ class CircularTests(unittest.TestCase):
         self.assertEqual(result['selected']['initial'][1],6)
         self.assertEqual(row['initial'][1],124)
 
+    @unittest.skipUnless(find_spec("fitburst"), "requires the optional FitBurst renderer")
     def test_full_pipeline_phase_export_and_review_consistency(self):
         e,x=fixture();predictions=[];parameters=[]
         with tempfile.TemporaryDirectory() as tmp:

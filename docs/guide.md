@@ -2,12 +2,20 @@
 
 ## Installation
 
-Use a fresh 64-bit Python 3.12 environment. Install the release wheels for FitBurst and burst surveyor, then check the numerical runtime.
+Use a fresh 64-bit Python 3.12 environment. From a checkout of this repository, install burst surveyor with its tested dependencies.
 
 ```sh
-python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/fitburst-0.1.0-py3-none-any.whl https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.2.0/burst_surveyor-0.2.0-py3-none-any.whl
+python -m pip install -c constraints.txt .
 python -m burstsurveyor doctor
 ```
+
+The default bounded burst fit uses the internal exporter. For FitBurst reference exports and modes that use FitBurst, install the optional extra from the same checkout. The `vendor` directory supplies the pinned CHIME/FRB wheel.
+
+```sh
+python -m pip install -c constraints.txt --find-links vendor ".[fitburst]"
+```
+
+For installation from [release files](https://github.com/ImmortalAri/burst-surveyor/releases), download the burst surveyor wheel and its accompanying `constraints.txt`, then install the wheel with `python -m pip install -c constraints.txt <wheel-filename>`. For the optional backend, also download and install the FitBurst wheel supplied with that release. Releases through v0.2.0 require both wheels.
 
 ## Fit an observation
 

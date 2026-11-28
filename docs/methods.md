@@ -1,6 +1,6 @@
 # How burst surveyor fits a burst
 
-This walkthrough follows one dedispersed observation through `burstsurveyor fit` in the default `bounded` mode. Burst surveyor chooses the candidate models, fits their parameters and compares their predictions. Upstream FitBurst renders the selected reconstruction for export. Folded pulsar profiles and the experimental spectral modes have different search rules. [Selection modes](selection.md)
+This walkthrough follows one dedispersed observation through `burstsurveyor fit` in the default `bounded` mode. Burst surveyor chooses the candidate models, fits their parameters and compares their predictions. By default it evaluates the selected pulse model on the original grid for export. Folded pulsar profiles and the experimental spectral modes have different search rules. [Selection modes](selection.md)
 
 ## From intensity to starting guesses
 
@@ -47,9 +47,11 @@ Run the [quickstart](../README.md#fit-an-observation) to generate the observatio
 
 The first three rows are competing explanations. Two Gaussians recover substantially more intensity than the single scattered pulse, and adding scattering to the two gives no improvement. The largest positive and negative residual-window scores after the initial selection have magnitudes 3.70 and 5.21. Both are below 6. The fourth row refines the two Gaussians on the original grid. The spectral check finds no evidence for a split. Both pulses in this example were found before the first fit. [Compare the observation, models and residuals](https://immortalari.github.io/burst-surveyor/two-pulse.html)
 
+For export, Surveyor holds the chosen pulse shapes fixed and tests one nonnegative amplitude adjustment. It adopts the adjustment only if both noise-weighted gains improve by more than the larger of one gain unit and 0.1% of the corresponding starting gain, and the recomputed scores pass the export checks. The default exporter integrates each component over the observed bins. The optional FitBurst exporter evaluates the same geometry with FitBurst. [Exporter comparison](validation.md#exporter-agreement)
+
 ## Inspect the decision for your own run
 
-In `run/results.json`, each observation has a status. For an exported fit, `primary_receipt` points to the starting regions, trials and selection. `native_receipt` records the FitBurst export checks, and `prediction` points to the saved NPZ. Run this Python snippet from the directory containing the quickstart’s `run` folder.
+In `run/results.json`, each observation has a status. For an exported fit, `primary_receipt` points to the starting regions, trials and selection. `native_receipt` identifies the exporter and records the checks on the saved pixels, and `prediction` points to the saved NPZ. Run this Python snippet from the directory containing the quickstart’s `run` folder.
 
 ```python
 import json

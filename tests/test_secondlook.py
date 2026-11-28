@@ -222,6 +222,7 @@ class SecondLookTests(unittest.TestCase):
         event = self.events["seven.npz"]
         decision = read(self.extra / event["id"] / "decision.json")
         self.assertEqual(decision["status"], "provisional_challenger")
+        self.assertEqual(decision["native"]["export_backend"], "internal")
         self.assertEqual(decision["native"]["selected"]["n"], event["components"] + 1)
         self.assertTrue(
             all(
