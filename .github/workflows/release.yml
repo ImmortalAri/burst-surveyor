@@ -9,11 +9,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Fetch the annotated tag itself so its message is available for the release.
+          ref: ${{ github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - name: Build and test release wheels
         run: |
+          test "$(git rev-parse HEAD)" = "$(git rev-parse "$GITHUB_SHA^{commit}")"
           python vendor/verify.py
           python -m pip wheel --no-deps . -w dist
           python -m pip install -c constraints.txt dist/*.whl
@@ -35,5 +39,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-from-tag --title "burst surveyor $GITHUB_REF_NAME" \
+          git for-each-ref --format='%(contents)' "$GITHUB_REF" > "$RUNNER_TEMP/release-notes.md"
+          gh release create "$GITHUB_REF_NAME" --verify-tag --notes-file "$RUNNER_TEMP/release-notes.md" --title "burst surveyor $GITHUB_REF_NAME" \
             dist/*.whl vendor/*.whl constraints.txt
