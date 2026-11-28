@@ -6,7 +6,7 @@ The three BaseCat2 figures show archived comparisons of automated and human fits
 
 ### Event 156410110
 
-Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference. [Explore the v0.2.0 fit stages.](https://immortalari.github.io/burst-surveyor/)
+Both fits follow the main peaks. The automated fit uses six components and follows the smaller peak near 16.5 ms more closely than the five-component human reference. [Follow the v0.2.0 worked example through the selected fit.](../README.md#worked-example-for-basecat2-event-156410110)
 
 ![Observed profile and residuals for event 156410110. Both model spectra and their residuals are shown below the profiles.](event-156410110-comparison.png)
 

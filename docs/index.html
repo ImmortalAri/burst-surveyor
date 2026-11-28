@@ -8,25 +8,27 @@
 <script src="fit-viewer.js" defer></script>
 </head>
 <body>
-<nav aria-label="Examples"><a href="https://github.com/ImmortalAri/burst-surveyor#how-the-fit-works">burst surveyor README</a><a href="two-pulse.html">Two-pulse example</a></nav>
+<nav aria-label="Examples"><a href="https://github.com/ImmortalAri/burst-surveyor#worked-example-for-basecat2-event-156410110">Worked example in the README</a><a href="two-pulse.html">Two-pulse example</a></nav>
 <main>
 <h1>BaseCat2 event 156410110</h1>
-<p>Burst Surveyor v0.2.0 fitted this observation on a shared time grid. Each stage uses the same time window and intensity scales. Gray bands mark masked channels.</p>
+<p>Burst Surveyor v0.2.0 started with three detected peaks on the observation's shared time grid and exported a six-component fit. Select a stage to see how the residual guided the search.</p>
+<p>The top panel overlays the observed and fitted pulse profiles. The bottom panels show the observed spectrum, the model, and the residual (observation minus model). All stages use the same time window and intensity scales. Gray bands mark masked channels.</p>
+<p>Gain measures the reduction in channel-noise-weighted squared error relative to a constant baseline in each channel. The stages are scored on the same usable pixels.</p>
 <figure id="stage-0" data-stage="3 components">
-  <img src="figures/event-156410110-views/3-components.png" width="1250" height="525" alt="The search found peaks near 18.7, 21.6 and 30.1 ms. The three-component fit with scattering leaves a peak near 24.7 ms in the residual.">
-  <figcaption>The search found peaks near 18.7, 21.6 and 30.1 ms. The three-component fit with scattering leaves a peak near 24.7 ms in the residual.</figcaption>
+  <img src="figures/event-156410110-views/3-components.png" width="1250" height="525" alt="The three-component model leaves a bright vertical feature near 24.7 ms in the residual spectrum.">
+  <figcaption>The initial search found peaks near 18.7, 21.6, and 30.1 ms. The three-component fit with scattering reached a gain of 6,928. The residual still shows a peak near 24.7 ms.</figcaption>
 </figure>
 <figure id="stage-1" data-stage="4 components">
-  <img src="figures/event-156410110-views/4-components.png" width="1250" height="525" alt="The residual supplied a starting point for a fourth component near 24.7 ms. The gain rose from 6928 to 8561. The earlier peak near 16.3 ms remains.">
-  <figcaption>The residual supplied a starting point for a fourth component near 24.7 ms. The gain rose from 6928 to 8561. The earlier peak near 16.3 ms remains.</figcaption>
+  <img src="figures/event-156410110-views/4-components.png" width="1250" height="525" alt="The model captures the peak near 24.7 ms, and the residual still shows emission near 16.3 ms.">
+  <figcaption>The 24.7 ms residual peak supplied a starting time for a fourth component. Refitting all four together removed most of that feature from the residual and raised the gain to 8,561. The earlier feature near 16.3 ms remained.</figcaption>
 </figure>
 <figure id="stage-2" data-stage="5 components">
-  <img src="figures/event-156410110-views/5-components.png" width="1250" height="525" alt="A second residual search added a component near 16.3 ms. The gain rose to 9176.">
-  <figcaption>A second residual search added a component near 16.3 ms. The gain rose to 9176.</figcaption>
+  <img src="figures/event-156410110-views/5-components.png" width="1250" height="525" alt="The five-component model includes the early feature near 16.3 ms.">
+  <figcaption>A later residual search added a fifth component near 16.3 ms. The joint refit raised the gain to 9,176.</figcaption>
 </figure>
-<figure id="stage-3" data-stage="6 components">
-  <img src="figures/event-156410110-views/6-components.png" width="1250" height="525" alt="Six-component reconstruction and residual. Two overlapping components describe the early peak near 16.3 ms.">
-  <figcaption>The selected fit uses two overlapping terms with different spectra for the early feature. Their arrival times at 600 MHz are 16.19 and 16.36 ms. The split raises the gain from 9176 to 9229. The number of physical pulses remains uncertain.</figcaption>
+<figure id="stage-3" data-stage="6 components (selected)">
+  <img src="figures/event-156410110-views/6-components.png" width="1250" height="525" alt="The exported six-component fit overlaid on the observed pulse profile, with the model spectrum and final residual below.">
+  <figcaption>The selected fit describes the early feature with two overlapping components that have different spectra. Their fitted arrival times at 600 MHz are 16.19 and 16.36 ms. The split raised the gain to 9,229. The number of physical pulses remains uncertain.</figcaption>
 </figure>
 </main>
 </body>

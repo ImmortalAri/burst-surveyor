@@ -20,11 +20,28 @@ For a burst, the search averages usable frequency channels over the full band, h
 
 The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the exported FitBurst parameters.
 
-For BaseCat2 event 156410110, v0.2.0 found three initial peaks on the observation's shared time grid. After fitting them, a peak near **24.7 ms** remained in the residual (bottom middle). That peak supplied the starting time for a fourth component. After refitting, most of the emission at that time is gone from the residual (bottom right). Gray bands mark masked channels.
+### Worked example for BaseCat2 event 156410110
 
-[![Observed profile and dynamic spectrum at left. At right, the three- and four-component models are shown above their residuals on the same scales.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
+Burst Surveyor v0.2.0 found three initial peaks near 18.7, 21.6 and 30.1 ms on this observation's shared time grid. The three-component fit with scattering left a peak near **24.7 ms** in the residual, which is the observed intensity minus the fitted model. The search used that peak to seed a fourth component and refitted the model jointly. Most of the residual emission at 24.7 ms disappears in the four-component fit. An earlier feature near **16.3 ms** remains.
 
-The search then found an earlier feature near 16.3 ms. The selected fit used six components, two of which overlap at that early feature and have different spectra. [Step through the four fits.](https://immortalari.github.io/burst-surveyor/)
+[![The observation beside the three- and four-component fits. The peak near 24.7 ms is prominent in the three-component residual and much weaker in the four-component residual.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
+
+The gain measures how much a fit reduces noise-weighted squared error relative to a constant baseline per channel. The table shows the rounded gains on the observation grid.
+
+| Components | Gain | What changed |
+| --- | ---: | --- |
+| 3 | 6,928 | Fit the three peaks found in the initial search. |
+| 4 | 8,561 | Add a component near 24.7 ms from the residual. |
+| 5 | 9,176 | Add a component near 16.3 ms from the remaining residual. |
+| **6 · selected** | **9,229** | Split the early feature into two overlapping components with different spectra. |
+
+#### Selected fit with six components
+
+The final split adds 53 gain units. That exceeds the roughly nine-unit difference within which the [refinement prefers a simpler fit](docs/methods.md#choosing-a-model-and-deciding-when-to-stop). At 600 MHz the two overlapping components have fitted arrival times of **16.19 and 16.36 ms**. The number of physical pulses in the early feature remains uncertain.
+
+![Selected six-component fit. The observed and fitted profiles are overlaid above the observed spectrum, model spectrum and residual. Gray bands mark masked channels.](docs/figures/event-156410110-views/6-components.png)
+
+[Step through all four fits on the same scales.](https://immortalari.github.io/burst-surveyor/)
 
 The [fit gallery](examples/README.md) includes other fast radio bursts, folded pulsar profiles and the bundled example. The [selection guide](docs/selection.md) describes the search in each fitting mode.
 
