@@ -1,38 +1,88 @@
 name: Package checks
-on: [push, pull_request]
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
 defaults:
   run:
     shell: bash
 jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.15'
+      - name: Build the distribution and verify the optional FitBurst wheel
+        run: |
+          python vendor/verify.py
+          python -m pip wheel --no-deps . -w dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: burst-surveyor-wheel
+          path: dist/*.whl
+          if-no-files-found: error
+
   test:
+    needs: build
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest]
-        python: ["3.12", "3.13"]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python }}
+          python-version: '3.15'
+      - uses: actions/download-artifact@v4
+        with:
+          name: burst-surveyor-wheel
+          path: dist
       - name: Test default installation without FitBurst
         run: |
-          python -m pip install -c constraints.txt .
+          python -c 'import sys, sysconfig; assert sys.implementation.name == "cpython" and sys.version_info[:2] == (3, 15) and not sysconfig.get_config_var("Py_GIL_DISABLED")'
+          python -m pip install -c constraints.txt dist/*.whl
           python -m pip check
           python -c "from importlib.util import find_spec; assert find_spec('fitburst') is None"
-          python -m burstsurveyor doctor
-          python -m burstsurveyor fit examples/two-pulse.npz run --workers 1
-          python -m burstsurveyor verify run
-          python -c 'import json; assert json.load(open("run/results.json"))["events"][0]["components"] == 2'
-          python -m burstsurveyor prepare examples/two-pulse.npz review-run --workers 1
-          python -m burstsurveyor verify review-run/fit
+          burstsurveyor doctor
+          burstsurveyor example two-pulse.npz
+          burstsurveyor fit examples/two-pulse.npz run --workers 1
+          burstsurveyor verify run
+          burstsurveyor prepare two-pulse.npz review-run --workers 1
+          burstsurveyor verify review-run/fit
           python -m unittest discover -s tests -v
       - name: Test optional FitBurst installation and reference export
         run: |
-          python vendor/verify.py
-          python -m pip install -c constraints.txt --find-links vendor ".[fitburst]"
+          wheel=(dist/*.whl)
+          python -m pip install -c constraints.txt --find-links vendor "${wheel[0]}[fitburst]"
           python -m pip check
-          python -m burstsurveyor fit examples/two-pulse.npz reference-run --workers 1 --exporter fitburst
-          python -m burstsurveyor verify reference-run
-          python -c 'import json; assert json.load(open("reference-run/results.json"))["events"][0]["components"] == 2'
+          burstsurveyor doctor --exporter fitburst
+          burstsurveyor fit examples/two-pulse.npz reference-run --workers 1 --exporter fitburst
+          burstsurveyor verify reference-run
           python -m unittest discover -s tests -v
+      - name: Check both exports against the bundled example
+        shell: python
+        run: |
+          import json
+          import math
+          from pathlib import Path
+
+          reference = json.loads(Path('examples/expected.json').read_text())
+          expected = reference['observed']
+          for directory, backend in [('run', 'internal'), ('reference-run', 'fitburst')]:
+              result = json.loads((Path(directory) / 'results.json').read_text())
+              event, = result['events']
+              assert result['exporter'] == backend
+              assert event['source_sha256'] == reference['source_sha256']
+              for key in ['components', 'scatter', 'status']:
+                  assert event[key] == expected[key], (backend, key, event[key], expected[key])
+              for key, target in [('gain', 'common_gain'), ('rms_gain', 'rms_gain')]:
+                  assert math.isclose(event[key], expected[target], rel_tol=reference['score_relative_tolerance']), (
+                      backend, key, event[key], expected[target]
+                  )

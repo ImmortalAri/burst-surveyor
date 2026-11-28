@@ -2,10 +2,16 @@ name: Publish release wheels
 on:
   push:
     tags: ['v[0-9]*']
-permissions:
-  contents: write
 jobs:
+  checks:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/test.yml
+
   release:
+    needs: checks
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,27 +20,17 @@ jobs:
           ref: ${{ github.ref }}
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
-      - name: Build and test release wheels
+          python-version: '3.15'
+      - uses: actions/download-artifact@v4
+        with:
+          name: burst-surveyor-wheel
+          path: dist
+      - name: Verify the tested wheel matches the release tag
         run: |
           test "$(git rev-parse HEAD)" = "$(git rev-parse "$GITHUB_SHA^{commit}")"
           python vendor/verify.py
-          python -m pip wheel --no-deps . -w dist
-          python -m pip install -c constraints.txt dist/*.whl
-          python -c "from importlib.util import find_spec; assert find_spec('fitburst') is None"
-          python -m pip check
+          python -m pip install --no-deps dist/*.whl
           test "v$(python -c 'from importlib.metadata import version; print(version("burst-surveyor"))')" = "$GITHUB_REF_NAME"
-          cd "$RUNNER_TEMP"
-          burstsurveyor doctor
-          burstsurveyor example two-pulse.npz
-          burstsurveyor fit two-pulse.npz run --workers 1
-          burstsurveyor verify run
-          python -c 'import json; assert json.load(open("run/results.json"))["events"][0]["components"] == 2'
-          python -m pip install -c "$GITHUB_WORKSPACE/constraints.txt" "$GITHUB_WORKSPACE"/vendor/*.whl
-          python -m pip check
-          burstsurveyor fit two-pulse.npz reference-run --workers 1 --exporter fitburst
-          burstsurveyor verify reference-run
-          python -c 'import json; assert json.load(open("reference-run/results.json"))["events"][0]["components"] == 2'
       - name: Publish wheels and tested constraints
         env:
           GH_TOKEN: ${{ github.token }}

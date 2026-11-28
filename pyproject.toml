@@ -4,16 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "burst-surveyor"
-version = "0.3.1"
+version = "0.4.0"
 authors = [{name = "Ari Polterovich"}]
 description = "Automated morphology fitting of radio bursts and folded pulsar profiles"
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE", "vendor/NOTICE.md", "vendor/FITBURST-LICENSE.txt"]
-requires-python = ">=3.12,<3.14"
+requires-python = ">=3.15,<3.16"
+classifiers = [
+  "Programming Language :: Python :: 3.15",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
 keywords = ["fast radio bursts", "pulsars", "dynamic spectra", "fitburst", "radio astronomy"]
 dependencies = [
-  "numpy~=2.2.6",
+  "numpy~=2.5.5",
   "scipy~=1.18.1",
   "psutil~=7.2.2",
   "threadpoolctl~=3.7.0",
@@ -21,7 +25,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-fitburst = ["fitburst==0.1.0"]
+fitburst = ["fitburst==0.1.0", "PyYAML~=6.0.4"]
 
 [project.scripts]
 burstsurveyor = "burstsurveyor.cli:main"
