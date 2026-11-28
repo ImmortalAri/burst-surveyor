@@ -18,6 +18,10 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.15'
+          check-latest: true
       - name: Download the released Burst Surveyor wheel and check its digest
         env:
           TAG: ${{ inputs.tag }}
