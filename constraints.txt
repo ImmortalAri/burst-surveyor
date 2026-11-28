@@ -1,4 +1,4 @@
-# Tested with CPython 3.12.
+# Tested with CPython 3.12 and 3.13.
 contourpy==1.4.0
 cycler==0.12.1
 fitburst==0.1.0

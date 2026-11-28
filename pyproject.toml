@@ -4,7 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "burst-surveyor"
-version = "0.3.0"
+version = "0.3.1"
+authors = [{name = "Ari Polterovich"}]
 description = "Automated morphology fitting of radio bursts and folded pulsar profiles"
 readme = "README.md"
 license = "MIT"

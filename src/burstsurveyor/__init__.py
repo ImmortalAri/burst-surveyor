@@ -1,6 +1,6 @@
 """Automated fitting of radio-burst dynamic spectra."""
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 def fit(inputs, output, *, workers=3, resume=False, mode="bounded", exporter=None):

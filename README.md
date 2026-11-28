@@ -4,30 +4,35 @@ burst surveyor automatically fits dedispersed radio bursts and folded pulsar pro
 
 ## Fit an observation
 
-In a fresh Python 3.12 environment, install [v0.3.0](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.0) and fit the bundled two-pulse example.
+In a fresh Python 3.12 or 3.13 environment, install the [v0.3.1 GitHub release](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.1) with its tested dependency versions.
 
 ```sh
-python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/burst_surveyor-0.3.0-py3-none-any.whl
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/burst_surveyor-0.3.1-py3-none-any.whl
+```
+
+For releases on PyPI, use `python -m pip install burst-surveyor`. To check the installation, generate and fit the bundled two-pulse example.
+
+```sh
 burstsurveyor example two-pulse.npz
 burstsurveyor fit two-pulse.npz run --workers 1
 burstsurveyor verify run
 ```
 
-[Installation from source and optional FitBurst support](docs/guide.md#installation)
+[Installation from source and optional FitBurst support](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/guide.md#installation)
 
-The fit recovers two components near 24.5 and 36.5 ms and selects zero scattering. `run/results.json` records the component count, scores and path to the reconstruction. To fit your own data, replace `two-pulse.npz` with an [observation in NPZ format](docs/reference.md) or a directory of observations. Use a new output directory for each run. The default burst fit uses [measured channel time offsets](docs/reference.md#channel-timing) when the input supplies them.
+The fit recovers two components near 24.5 and 36.5 ms and selects zero scattering. `run/results.json` records the component count, scores and path to the reconstruction. To fit your own data, replace `two-pulse.npz` with an [observation in NPZ format](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/reference.md) or a directory of observations. Use a new output directory for each run. The default burst fit uses [measured channel time offsets](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/reference.md#channel-timing) when the input supplies them.
 
 ## How the fit works
 
 For a burst, the search averages usable frequency channels over the full band, halves and quarters. It looks for peaks at several smoothing widths. Their positions and widths supply starting estimates for Gaussian components, which are fitted jointly to the dynamic spectrum. The search tests models with and without a scattering tail and checks the residuals for missed emission. It scores each candidate by the reduction in noise-weighted squared error on the original grid and favors simpler fits when scores are close.
 
-The [methods walkthrough](docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the saved model and residuals.
+The [methods walkthrough](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/methods.md) follows the bundled observation from its first peak guesses through the scoring and stopping rules to the saved model and residuals.
 
 ### Worked example for BaseCat2 event 156410110
 
 Burst Surveyor v0.3.0 found three initial peaks near 18.7, 21.6 and 30.1 ms on this observation's shared time grid. The three-component fit with scattering left a peak near **24.7 ms** in the residual, which is the observed intensity minus the fitted model. The search used that peak to seed a fourth component and refitted the model jointly. Most of the residual emission at 24.7 ms disappears in the four-component fit. An earlier feature near **16.3 ms** remains.
 
-[![The observation beside the three- and four-component fits. The peak near 24.7 ms is prominent in the three-component residual and much weaker in the four-component residual.](examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
+[![The observation beside the three- and four-component fits. The peak near 24.7 ms is prominent in the three-component residual and much weaker in the four-component residual.](https://raw.githubusercontent.com/ImmortalAri/burst-surveyor/v0.3.1/examples/event-156410110-fit-stages.png)](https://immortalari.github.io/burst-surveyor/)
 
 The gain measures how much a fit reduces noise-weighted squared error relative to a constant baseline per channel. The table shows the rounded gains on the observation grid.
 
@@ -40,22 +45,22 @@ The gain measures how much a fit reduces noise-weighted squared error relative t
 
 #### Selected fit with six components
 
-The final split adds 53 gain units. That exceeds the roughly nine-unit difference within which the [refinement prefers a simpler fit](docs/methods.md#choosing-a-model-and-deciding-when-to-stop). At 600 MHz the two overlapping components have fitted arrival times of **16.19 and 16.36 ms**. The number of physical pulses in the early feature remains uncertain.
+The final split adds 53 gain units. That exceeds the roughly nine-unit difference within which the [refinement prefers a simpler fit](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/methods.md#choosing-a-model-and-deciding-when-to-stop). At 600 MHz the two overlapping components have fitted arrival times of **16.19 and 16.36 ms**. The number of physical pulses in the early feature remains uncertain.
 
-![Selected six-component fit. The observed and fitted profiles are overlaid above the observed spectrum, model spectrum and residual. Gray bands mark masked channels.](docs/figures/event-156410110-views/6-components.png)
+![Selected six-component fit. The observed and fitted profiles are overlaid above the observed spectrum, model spectrum and residual. Gray bands mark masked channels.](https://raw.githubusercontent.com/ImmortalAri/burst-surveyor/v0.3.1/docs/figures/event-156410110-views/6-components.png)
 
 [Step through all four fits on the same scales.](https://immortalari.github.io/burst-surveyor/)
 
-The [fit gallery](examples/README.md) includes other fast radio bursts, folded pulsar profiles and the bundled example. The [selection guide](docs/selection.md) describes the search in each fitting mode.
+The [fit gallery](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/examples/README.md) includes other fast radio bursts, folded pulsar profiles and the bundled example. The [selection guide](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/selection.md) describes the search in each fitting mode.
 
-The [validation results](docs/validation.md) compare reconstructions with the CHIME/FRB Catalog 2 fits and report false splits and weak-pair recovery in blind pulse injections.
+The [validation results](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/validation.md) compare reconstructions with the CHIME/FRB Catalog 2 fits and report false splits and weak-pair recovery in blind pulse injections.
 
 ## Reviewing fits
 
-Use [`prepare`](docs/guide.md#figures-and-residuals) to generate figures and screen for possible missed components. You can inspect the results yourself or use the [optional AI-assisted review instructions](docs/ai-assisted-review/README.md).
+Use [`prepare`](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/guide.md#figures-and-residuals) to generate figures and screen for possible missed components. You can inspect the results yourself or use the [optional AI-assisted review instructions](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/ai-assisted-review/README.md).
 
-For a completed bounded fit, [`route-rescue`](docs/selection.md#opt-in-rescue-routing) can try one targeted refit when the observed residual supports it. The synthetic example shows how it separates two blended peaks.
+For a completed bounded fit, [`route-rescue`](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/docs/selection.md#opt-in-rescue-routing) can try one targeted refit when the observed residual supports it. The synthetic example shows how it separates two blended peaks.
 
 ## Citation
 
-If you publish results obtained with burst surveyor, cite [the software](CITATION.cff) and [Fonseca et al. (2024)](https://doi.org/10.3847/1538-4365/ad27d6).
+If you publish results obtained with burst surveyor, cite [the software](https://github.com/ImmortalAri/burst-surveyor/blob/v0.3.1/CITATION.cff) and [Fonseca et al. (2024)](https://doi.org/10.3847/1538-4365/ad27d6).

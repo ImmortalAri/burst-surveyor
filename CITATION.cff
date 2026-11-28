@@ -3,9 +3,10 @@ message: "Cite burst surveyor and FitBurst."
 title: "burst surveyor"
 repository-code: "https://github.com/immortalari/burst-surveyor"
 type: software
-version: "0.3.0"
+version: "0.3.1"
 authors:
-  - name: "immortalari"
+  - family-names: "Polterovich"
+    given-names: "Ari"
 license: MIT
 keywords:
   - fast radio bursts

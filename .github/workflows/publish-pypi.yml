@@ -1,0 +1,61 @@
+name: Publish release wheel to PyPI
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Published GitHub release tag (e.g. v0.3.1)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    if: github.ref_name == github.event.repository.default_branch && github.ref_type == 'branch'
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/burst-surveyor/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download the released Burst Surveyor wheel and check its digest
+        env:
+          TAG: ${{ inputs.tag }}
+          GH_TOKEN: ${{ github.token }}
+        shell: python
+        run: |
+          import hashlib
+          import io
+          import json
+          import os
+          import re
+          from email import message_from_bytes
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+          from zipfile import ZipFile
+
+          tag = os.environ['TAG']
+          if not re.fullmatch(r'v[0-9]+\.[0-9]+\.[0-9]+', tag):
+              raise ValueError('Expected a release tag such as v0.3.1')
+          version = tag[1:]
+          wheel = f'burst_surveyor-{version}-py3-none-any.whl'
+          repo = os.environ['GITHUB_REPOSITORY']
+          request = Request(f'https://api.github.com/repos/{repo}/releases/tags/{tag}',
+                            headers={'Authorization': 'Bearer ' + os.environ['GH_TOKEN']})
+          with urlopen(request, timeout=30) as response:
+              release = json.load(response)
+          if release['tag_name'] != tag or release['draft'] or release['prerelease']:
+              raise ValueError('Expected a published stable release')
+          asset, = [item for item in release['assets'] if item['name'] == wheel]
+          with urlopen(asset['browser_download_url'], timeout=60) as response:
+              data = response.read()
+          if asset['digest'] != 'sha256:' + hashlib.sha256(data).hexdigest():
+              raise ValueError('Wheel digest differs from the GitHub release asset')
+          with ZipFile(io.BytesIO(data)) as archive:
+              metadata = message_from_bytes(archive.read(f'burst_surveyor-{version}.dist-info/METADATA'))
+          if metadata['Name'] != 'burst-surveyor' or metadata['Version'] != version:
+              raise ValueError('Wheel metadata differs from the requested package or version')
+          Path('dist').mkdir()
+          Path('dist', wheel).write_bytes(data)
+      - name: Publish the verified wheel
+        uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3

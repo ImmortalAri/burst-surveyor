@@ -2,17 +2,17 @@
 
 ## Installation
 
-Use a fresh 64-bit Python 3.12 environment. The [v0.3.0 release](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.0) provides the wheel and tested dependency versions. The default burst fit runs without FitBurst.
+Use a fresh 64-bit Python 3.12 or 3.13 environment. The [v0.3.1 release](https://github.com/ImmortalAri/burst-surveyor/releases/tag/v0.3.1) provides the wheel and tested dependency versions. The default burst fit runs without FitBurst.
 
 ```sh
-python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/burst_surveyor-0.3.0-py3-none-any.whl
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/burst_surveyor-0.3.1-py3-none-any.whl
 python -m burstsurveyor doctor
 ```
 
 For folded pulsars, experimental spectral modes, or a FitBurst reference export, install the pinned FitBurst wheel in the same environment.
 
 ```sh
-python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.0/fitburst-0.1.0-py3-none-any.whl
+python -m pip install -c https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/constraints.txt https://github.com/ImmortalAri/burst-surveyor/releases/download/v0.3.1/fitburst-0.1.0-py3-none-any.whl
 python -m burstsurveyor doctor --exporter fitburst
 ```
 
