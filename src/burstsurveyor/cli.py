@@ -42,6 +42,8 @@ def _parser():
         metavar="DIRECTORY",
         help="also verify this alternate analysis",
     )
+    verify.add_argument("--route-rescue", type=Path, metavar="DIRECTORY",
+                        help="also verify an opt-in routed rescue")
     prepare = sub.add_parser(
         "prepare", help="fit the inputs and generate review packets and figures"
     )
@@ -103,6 +105,10 @@ def _parser():
         cmd.add_argument("--resume", action="store_true")
     rescue.add_argument("--limit", type=int, default=8)
     challenge.add_argument("--proposal", required=True, type=Path)
+    routed = sub.add_parser("route-rescue", help="try one targeted rescue on a sealed burst fit")
+    routed.add_argument("run", type=Path)
+    routed.add_argument("input", type=Path, help="one original NPZ from the sealed run")
+    routed.add_argument("output", type=Path, help="a new directory for the rescue result")
     sub.add_parser(
         "doctor", help="check the numerical runtime and upstream FitBurst import"
     )
@@ -197,12 +203,21 @@ def _run(args):
     if args.command == "verify":
         from .batch import verify
 
-        summary = _brief(verify(args.output), args.output)
+        stock = verify(args.output)
+        summary = _brief(stock, args.output)
         if args.second_look is not None:
             from .secondlook import verify_second_look
 
             summary["second_look"] = verify_second_look(args.output, args.second_look)
+        if args.route_rescue is not None:
+            from .route_rescue import verify_route_rescue
+
+            summary["route_rescue"] = verify_route_rescue(args.output, args.route_rescue, stock)
         return summary
+    if args.command == "route-rescue":
+        from .route_rescue import route_rescue
+
+        return route_rescue(args.run, args.input, args.output)
     if args.command == "review":
         from .review import queue
 

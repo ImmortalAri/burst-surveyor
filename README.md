@@ -34,6 +34,8 @@ The [validation results](docs/validation.md) compare reconstructions with the CH
 
 Use [`prepare`](docs/guide.md#figures-and-residuals) to generate figures and screen for possible missed components. You can inspect the results yourself or use the [optional AI-assisted review instructions](docs/ai-assisted-review/README.md).
 
+For a completed bounded fit, [`route-rescue`](docs/selection.md#opt-in-rescue-routing) can try one targeted refit when the observed residual supports it. The synthetic example shows how it separates two blended peaks.
+
 ## Citation
 
 If you publish results obtained with burst surveyor, cite [the software](CITATION.cff) and [Fonseca et al. (2024)](https://doi.org/10.3847/1538-4365/ad27d6).

@@ -49,3 +49,15 @@ The search finds a peak at 24.5 ms in the full band and a weaker peak at 36.5 ms
 The single scattered pulse gives a gain of 5417.72. Two Gaussian components give 7085.52, and adding scattering gives 7085.45. The search selects two components without scattering. After refinement their arrival times at 600 MHz are 24.49 and 36.58 ms. [Expected scores and checksum of the bundled NPZ](expected.json)
 
 ![Two-pulse synthetic observation, automated profile and model spectrum, and observed minus modeled intensity.](two-pulse-fit.png)
+
+## Bundled rescue example
+
+[`route-rescue-crowded.npz`](route-rescue-crowded.npz) contains six simulated pulses over Gaussian noise. The default fit blends the peaks at **21.5 ms** and **25.5 ms** into one hump. The router detects the missing structure and jointly refits all six peaks.
+
+```sh
+burstsurveyor fit examples/route-rescue-crowded.npz synthetic-fit --workers 1
+burstsurveyor route-rescue synthetic-fit examples/route-rescue-crowded.npz synthetic-rescue
+burstsurveyor verify synthetic-fit --route-rescue synthetic-rescue
+```
+
+The routed result is a `candidate` with six distinct fitted peaks. Weighted squared error falls by about **6.16%** across the burst and by **5.32%** and **4.99%** on the two held-out channel sets under the primary weights. Both held-out checks also improve under the alternate weights. The [generator](make_route_rescue_example.py) can recreate the example in a new file.
